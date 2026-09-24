@@ -386,9 +386,6 @@ Quick version:
 - Raycast API docs: https://developers.raycast.com/api-reference/
 - Raycast extension store: https://www.raycast.com/store
 
-## Contributors
-
-Thanks to everyone who has contributed to SuperCmd!
 
 ## GitHub Star History
 
