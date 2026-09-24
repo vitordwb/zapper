@@ -1,8 +1,6 @@
 <h1 align="center"><b>I LOVE COMPUTERS CORPORATION (c)</b></h1>
 
-<h1 align="left"><b>Zapper</b></h1>
-
-Zapper is my personal version of [SuperCmd](https://github.com/SuperCmdLabs/SuperCmd): a macOS launcher with Raycast-compatible extensions, voice tools, notes, clipboard history and configurable AI providers. Maintained in [vitordwb/zapper](https://github.com/vitordwb/zapper).
+**Zapper** is my personal version of [SuperCmd](https://github.com/SuperCmdLabs/SuperCmd): a macOS launcher with Raycast-compatible extensions, voice tools, notes, clipboard history and configurable AI providers. Maintained in [vitordwb/zapper](https://github.com/vitordwb/zapper).
 
 Zapper uses its own app identity (`com.vitordwb.zapper`), URL scheme (`zapper://`), update repository and data directory (`~/Library/Application Support/Zapper`). Existing SuperCmd data is not migrated or deleted. Internal compatibility identifiers remain unchanged.
 
