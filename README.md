@@ -1,18 +1,7 @@
 <div align="center">
-<p align="center">
-  <img src="./supercmd.svg" width="96" height="96" alt="SuperCmd logo">
-</p>
 
-<h1 align="center"><b>SuperCmd</b></h1>
+<h1 align="center"><b>I LOVE COMPUTERS CORPORATION (c)</b></h1>
 <h4 align="center">Raycast + Wispr Flow + Speechify + Memory + AI</h4>
-
-<p align="center">
-  <a href="https://supercmd.sh"><img src="https://img.shields.io/badge/website-supercmd.sh-black.svg" alt="Website"></a>
-  <a href="https://www.electronjs.org/"><img src="https://img.shields.io/badge/electron-40-blue.svg" alt="Electron"></a>
-  <a href="https://discord.gg/CsdbknHqx5"><img src="https://img.shields.io/badge/Discord-Join%20chat-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="http://makeapullrequest.com"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
-  <a href="https://buymeacoffee.com/shobhit99"><img src="https://img.shields.io/badge/Sponsor-Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
-</p>
 
 <p align="center">Open-source launcher for macOS with Raycast-compatible extensions, voice workflows, and AI-native actions.</p>
 </div>
@@ -377,8 +366,6 @@ Quick version:
 
 Thanks to everyone who has contributed to SuperCmd!
 
-<p><a href="https://github.com/shobhit99"><img src="https://avatars.githubusercontent.com/u/38807205?v=4" width="48" height="48" alt="shobhit99" title="shobhit99" style="border-radius:50%"></a> <a href="https://github.com/monotykamary"><img src="https://avatars.githubusercontent.com/u/1130103?v=4" width="48" height="48" alt="monotykamary" title="monotykamary" style="border-radius:50%"></a> <a href="https://github.com/elicep01"><img src="https://avatars.githubusercontent.com/u/184329244?v=4" width="48" height="48" alt="elicep01" title="elicep01" style="border-radius:50%"></a> <a href="https://github.com/tuanddd"><img src="https://avatars.githubusercontent.com/u/25856620?v=4" width="48" height="48" alt="tuanddd" title="tuanddd" style="border-radius:50%"></a> <a href="https://github.com/stephaneRR"><img src="https://avatars.githubusercontent.com/u/120036021?v=4" width="48" height="48" alt="stephaneRR" title="stephaneRR" style="border-radius:50%"></a> <a href="https://github.com/ericmason"><img src="https://avatars.githubusercontent.com/u/17150?v=4" width="48" height="48" alt="ericmason" title="ericmason" style="border-radius:50%"></a> <a href="https://github.com/pablopunk"><img src="https://avatars.githubusercontent.com/u/4324982?v=4" width="48" height="48" alt="pablopunk" title="pablopunk" style="border-radius:50%"></a> <a href="https://github.com/Hantok"><img src="https://avatars.githubusercontent.com/u/1752322?v=4" width="48" height="48" alt="Hantok" title="Hantok" style="border-radius:50%"></a> <a href="https://github.com/dardevelin"><img src="https://avatars.githubusercontent.com/u/1424739?v=4" width="48" height="48" alt="dardevelin" title="dardevelin" style="border-radius:50%"></a></p>
-
 ## GitHub Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=SuperCmdLabs/SuperCmd&type=Date)](https://star-history.com/#SuperCmdLabs/SuperCmd&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=vitordwb/zapper&type=Date)](https://star-history.com/#vitordwb/zapper&Date)
