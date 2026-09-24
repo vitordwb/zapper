@@ -1,21 +1,18 @@
-<div align="center">
-
 <h1 align="center"><b>I LOVE COMPUTERS CORPORATION (c)</b></h1>
-<h4 align="center">Raycast + Wispr Flow + Speechify + Memory + AI</h4>
 
-<p align="center">Open-source launcher for macOS with Raycast-compatible extensions, voice workflows, and AI-native actions.</p>
-</div>
+# Zapper
 
-![SuperCmd Screenshot](./assets/supercmd.png)
+<img src="./zapper.svg" width="96" height="96" alt="Zapper logo">
 
-Open-source launcher for macOS: **Raycast + Wispr Flow + Speechify + Memory + AI** in one app.
+Zapper is my personal version of [SuperCmd](https://github.com/SuperCmdLabs/SuperCmd): a macOS launcher with Raycast-compatible extensions, voice tools, notes, clipboard history and configurable AI providers. Maintained in [vitordwb/zapper](https://github.com/vitordwb/zapper).
 
-Zapper is my version of SuperCmd gives you Raycast-style extension workflows, hold-to-speak dictation, natural text-to-speech, AI actions backed by configurable providers and memory, notes, canvas, clipboard history, snippet expansion, and window tiling — all from a single keyboard shortcut.
+Zapper uses its own app identity (`com.vitordwb.zapper`), URL scheme (`zapper://`), update repository and data directory (`~/Library/Application Support/Zapper`). Existing SuperCmd data is not migrated or deleted. Internal compatibility identifiers remain unchanged.
 
+The initial distribution target is **macOS Apple Silicon (ARM64)**. Native helpers build for the host architecture; Intel releases are not offered. Public downloads and Homebrew installation require a published release and tap, not just this repository.
 
 ## What It Is
 
-SuperCmd is an Electron + React launcher that focuses on Raycast extension compatibility while remaining community-driven and open source. It ships a full `@raycast/api` and `@raycast/utils` compatibility shim so existing Raycast extensions work without modification. For anything that requires tight system integration — hotkeys, window management, speech recognition, clipboard, snippet injection — it drops into Swift and Objective-C to talk directly to macOS frameworks (ApplicationServices, EventKit, AVFoundation, Carbon) for native speed and reliability.
+Zapper is an Electron + React launcher with an `@raycast/api` and `@raycast/utils` compatibility layer. Swift and Objective-C helpers provide native macOS integration. Upstream copyright and MIT license terms are preserved in [LICENSE](./LICENSE), including in packaged apps.
 
 ## Key Features
 
@@ -43,7 +40,7 @@ SuperCmd is an Electron + React launcher that focuses on Raycast extension compa
 
 ## Tech Stack
 
-- Electron 40 (main process)
+- Electron 41 (main process)
 - React 18 + Vite 5 (renderer)
 - TypeScript 5.3
 - Tailwind CSS 3
@@ -95,26 +92,32 @@ dist/            Build output
 
 ## Install
 
-### Homebrew
+### Install a local build
+
+After installing development prerequisites and running `npm install`:
 
 ```bash
-brew install --cask supercmdlabs/supercmd/supercmd
+npm run package:unsigned
+open out
 ```
 
-### Download the app
+Open `Zapper-<version>-arm64.dmg`, quit Zapper, then drag `Zapper.app` to Applications. Launch `/Applications/Zapper.app`; Node/npm are not required to run it. This local build is not Developer ID signed or notarized. If Gatekeeper blocks your own build, review it in System Settings → Privacy & Security; do not disable Gatekeeper globally.
 
-Download the latest `.dmg` from the [Releases page](https://github.com/SuperCmdLabs/SuperCmd/releases/latest):
+Keep the original SuperCmd and development instance closed while using Zapper: global shortcuts and the inherited browser bridge port (`17373`) can conflict. Data directories are separate, but system-wide shortcuts are not.
 
-- **Apple Silicon (M1/M2/M3/M4):** `SuperCmd-x.x.x-arm64.dmg`
-- **Intel Mac:** `SuperCmd-x.x.x.dmg`
+### Public downloads and Homebrew
 
-Open the `.dmg`, drag SuperCmd to your Applications folder, and launch it.
+Releases belong at https://github.com/vitordwb/zapper/releases. **After** publishing a signed release and adding its generated cask to `vitordwb/homebrew-tap`, users can install with:
 
-> **Note:** On first launch, macOS may warn that the app is from an unidentified developer. Go to System Settings → Privacy & Security and click "Open Anyway".
+```bash
+brew install --cask vitordwb/tap/zapper
+```
+
+This command is only usable after both the release and tap have been published. See **Publishing a release** below.
 
 ### macOS Permissions
 
-SuperCmd needs the following permissions. The app will prompt you on first use, or you can enable them manually in **System Settings → Privacy & Security**:
+Zapper needs the following permissions. The app will prompt you on first use, or you can enable them manually in **System Settings → Privacy & Security**:
 
 | Permission | Why | Required for |
 |---|---|---|
@@ -128,14 +131,14 @@ SuperCmd needs the following permissions. The app will prompt you on first use, 
 
 ### Auto-updates
 
-SuperCmd includes a built-in auto-updater backed by GitHub Releases. You can check for updates manually by searching "Check for Updates" in the launcher, or install a downloaded update on next launch.
+Zapper uses the packaged `app-update.yml`, pointing to `vitordwb/zapper`. Signed releases must include the ZIP and macOS update YAML/blockmaps, not only the DMG. Until a matching release is published, update checks can report no available release. Update unsigned local builds manually.
 
 ### Raycast Backup Import
 
-SuperCmd can import encrypted Raycast `.rayconfig` backups from the General settings tab.
+Zapper can import encrypted Raycast `.rayconfig` backups from the General settings tab.
 
 It currently imports:
-- Raycast settings that map cleanly to SuperCmd
+- Raycast settings that map cleanly to Zapper
 - the global launcher hotkey
 - command hotkeys
 - quicklinks
@@ -186,10 +189,12 @@ If you don't have Homebrew:
 
 ### 2. Clone and install
 ```bash
-git clone https://github.com/SuperCmdLabs/SuperCmd.git
-cd SuperCmd
+git clone https://github.com/vitordwb/zapper.git
+cd zapper
 npm install
 ```
+
+The macOS esbuild binaries are optional dependencies so npm can select the host architecture. The `postinstall` script adds the other macOS binary for cross-architecture packaging; do not move these packages into required `dependencies`, which causes `EBADPLATFORM` on installation.
 
 ### 3. Build native modules
 
@@ -214,12 +219,39 @@ npm run build
 
 Runs `build:main` + `build:renderer` + `build:native` in sequence.
 
-### 6. Package the app
+### 6. Update your installed app
+
 ```bash
-npm run package
+npm run package:unsigned
+open out
 ```
 
-Output artifacts are generated under `out/`.
+This rebuilds main, renderer and native helpers, producing `out/mac-arm64/Zapper.app` and the DMG. Quit the installed app and replace it in Applications via the new DMG. Data remains in `~/Library/Application Support/Zapper`. Unsigned replacements may require granting macOS permissions again.
+
+During development, Vite reloads the UI; main/preload changes require restarting `npm run dev`. Swift/addon changes require `npm run build:native` and a restart. Editing source does not change the installed app. Enable **Start at Login** in General settings on the installed app, not the development Electron instance.
+
+### Publishing a release
+
+1. Obtain an Apple **Developer ID Application** certificate. Configure repository Actions secrets: `CSC_LINK` (base64 `.p12`), `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`. Never commit secrets.
+2. `npm run release:check` checks variable presence and macOS ARM64, not credential validity with Apple.
+3. Commit the code and lockfile. `npm version patch` creates the next version commit/tag; push the branch and tag. Do not reuse upstream tags or change files after tagging.
+4. `.github/workflows/release.yml` runs on `v*` tags or manually with an existing tag. It installs from the lockfile, builds, signs, notarizes, verifies and publishes DMG/ZIP, update metadata and `zapper.rb`. Missing credentials stop the workflow rather than publishing unsigned artifacts.
+5. `npm run release` performs the signed build locally without publishing. Lower-level `npm run package` also never publishes but omits the release verification sequence.
+
+Apple signing/notarization requires real credentials; it has not been validated without them.
+
+### Publishing the Homebrew tap
+
+Create the public repository **vitordwb/homebrew-tap**. After a signed release succeeds, download its `zapper.rb` asset and commit it as `Casks/zapper.rb` there. The cask contains the exact DMG SHA-256 and versioned URL. Do not substitute the hash from an unsigned local build.
+
+To generate a cask for an existing local artifact:
+
+```bash
+npm run homebrew:cask
+ruby -c out/zapper.rb
+```
+
+This writes `out/zapper.rb`; it does not publish the DMG or create the tap. After pushing the release cask, test `brew install --cask vitordwb/tap/zapper` on a clean Mac. Later, update the cask from each new release; users run `brew update && brew upgrade --cask zapper`.
 
 ### Useful Commands
 
@@ -242,7 +274,7 @@ npm run check:i18n       # Check internationalization strings
 | `npm install` fails on native modules | Ensure Xcode CLT is installed and up to date: `softwareupdate --install -a` |
 | App launches but hotkeys don't work | Grant **Input Monitoring** permission (not just Accessibility) and restart the app |
 | Window management doesn't work | Grant **Accessibility** permission — `window-adjust.swift` checks `AXIsProcessTrusted()` |
-| Extensions fail to install | Verify Homebrew is installed (`brew --version`) — SuperCmd needs brew-resolved `git` to clone extensions |
+| Extensions fail to install | Verify Homebrew is installed (`brew --version`) — Zapper needs brew-resolved `git` to clone extensions |
 | `node-gyp` build errors | Check Node.js version (`node -v`) — requires 22+. Try deleting `node_modules` and re-running `npm install` |
 | Apple Silicon (M1/M2/M3) issues | Ensure you're running the arm64 version of Node.js, not the x64 version via Rosetta |
 | Native features missing after `npm run dev` | Run `npm run build:native` first — the dev script doesn't compile Swift binaries |
@@ -253,7 +285,7 @@ npm run check:i18n       # Check internationalization strings
 
 Configure everything from the app UI:
 
-1. Launch SuperCmd.
+1. Launch Zapper.
 2. Open **Settings** (search "Settings" or use the gear icon).
 3. Go to the **AI** tab.
 4. Enable AI (`enabled = true`).
@@ -292,7 +324,7 @@ Configure everything from the app UI:
 
 All app settings are persisted in:
 
-`~/Library/Application Support/SuperCmd/settings.json`
+`~/Library/Application Support/Zapper/settings.json`
 
 Key fields:
 
@@ -320,7 +352,7 @@ Key fields:
 }
 ```
 
-OAuth tokens are stored separately in `~/Library/Application Support/SuperCmd/oauth-tokens.json`.
+Secrets use `~/Library/Application Support/Zapper/safe-storage.json` through Electron safeStorage; when encryption is unavailable, the existing vault implementation can fall back to plaintext.
 
 ### Optional environment variable fallbacks
 
@@ -332,13 +364,14 @@ OAuth tokens are stored separately in `~/Library/Application Support/SuperCmd/oa
 
 ## Privacy & Security
 
-SuperCmd is open-source, so you can audit exactly what it does. The short version:
+Zapper is open-source, so you can audit exactly what it does. The short version:
 
-- **Telemetry**: one anonymous `app_started` event via [Aptabase](https://aptabase.com/).
+- **Startup analytics**: upstream Aptabase and its `app_started` event have been removed.
 - **AI prompts**: sent directly from your device to your configured provider (OpenAI / Anthropic / Gemini / Ollama).
 - **Extension install/uninstall**: reports extension name + an anonymous random machine ID to `api.supercmd.sh` for download counts.
-- **Voice data**: STT runs fully on-device (Whisper, Parakeet, native macOS) — audio never leaves your machine.
+- **Voice data**: local speech providers process audio on-device; cloud speech/TTS providers receive audio/text for the selected feature.
 
+- **Inherited services**: extension catalog/install counts, canvas downloads and hosted OAuth still use upstream infrastructure. This fork does not operate replacement servers. OAuth providers/hosted services must accept the new `zapper://` callback; live authorization has not been verified.
 See **[SECURITY.md](./SECURITY.md)** for the full breakdown.
 
 ## Contributing

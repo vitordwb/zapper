@@ -2,7 +2,7 @@
  * @raycast/api + @raycast/utils — Complete Compatibility Shim
  *
  * This module provides a comprehensive compatibility layer for Raycast
- * extensions running inside SuperCmd. It implements ALL the APIs
+ * extensions running inside Zapper. It implements ALL the APIs
  * documented at https://developers.raycast.com/api-reference/
  *
  * EXPORTS (from @raycast/api):
@@ -1178,7 +1178,7 @@ export const Clipboard = {
         if (inferredFile) file = inferredFile;
       }
 
-      // Prefer main-process paste flow: hides SuperCmd first and pastes into
+      // Prefer main-process paste flow: hides Zapper first and pastes into
       // the previously focused app/editor. This prevents pasting into the
       // launcher's own search field.
       if (file && electron?.pasteFile) {
@@ -2022,7 +2022,7 @@ export async function open(target: string, application?: string | Application): 
   }
 
   // Intercept raycast://confetti deeplinks (used by the 1-click-confetti extension)
-  // and map them to SuperCmd's native confetti overlay.
+  // and map them to Zapper's native confetti overlay.
   if (typeof target === 'string') {
     const normalized = target.trim().toLowerCase();
     if (
@@ -2188,7 +2188,7 @@ export async function getFrontmostApplication(): Promise<Application> {
   } catch (e) {
     console.error('getFrontmostApplication error:', e);
   }
-  return { name: 'SuperCmd', path: '', bundleId: 'com.supercmd' };
+  return { name: 'Zapper', path: '', bundleId: 'com.vitordwb.zapper' };
 }
 
 export async function getDefaultApplication(path: string): Promise<Application> {

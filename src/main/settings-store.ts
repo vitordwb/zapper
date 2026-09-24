@@ -2,7 +2,7 @@
  * Settings Store
  *
  * Simple JSON-file persistence for app settings.
- * Stored at ~/Library/Application Support/SuperCmd/settings.json
+ * Stored at ~/Library/Application Support/Zapper/settings.json
  */
 
 import { app } from 'electron';
@@ -95,7 +95,7 @@ export interface BrowserSearchSettings {
   alphaChromiumRootSearchEnabled: boolean;
   /** Auto-prune browser-search history older than N days. `null` = never prune. */
   historyRetentionDays: number | null;
-  /** Browser/profile sources enabled for SuperCmd browser history. */
+  /** Browser/profile sources enabled for Zapper browser history. */
   profileSourceIds: string[];
   /** Ordered Chromium profiles used for browser search and profile-aware opens. */
   profiles: BrowserProfileSetting[];
@@ -250,7 +250,7 @@ export interface AppSettings {
   // Auto-prune clipboard items older than N days. `null` = never prune.
   clipboardHistoryRetentionDays: number | null;
   // Bundle IDs of applications whose clipboard copies should NOT be saved to
-  // SuperCmd's clipboard history. Clipboard content copied while one of these
+  // Zapper's clipboard history. Clipboard content copied while one of these
   // apps is frontmost is simply ignored. The system pasteboard is untouched.
   clipboardAppBlacklist: string[];
   emojiPickerEnabled: boolean;

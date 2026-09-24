@@ -1,16 +1,15 @@
-# Contributing to SuperCmd
+# Contributing to Zapper
 
-Thanks for your interest in contributing to SuperCmd! This guide will help you get started.
+Thanks for your interest in contributing to Zapper! This guide will help you get started.
 
 ## Quick Links
 
-- [Discord](https://discord.gg/CsdbknHqx5) — ask questions, discuss features
-- [Issues](https://github.com/SuperCmdLabs/SuperCmd/issues) — report bugs or request features
-- [README — Getting Started](./README.md#getting-started) — set up your dev environment
+- [Issues](https://github.com/vitordwb/zapper/issues) — report bugs or request features
+- [README — Development Setup](./README.md#development-setup) — set up your dev environment
 
 ## Development Setup
 
-1. Follow the [Getting Started](./README.md#getting-started) section in the README to clone, install, and run the project.
+1. Follow the [Development Setup](./README.md#development-setup) section in the README to clone, install, and run the project.
 2. Make sure `npm run build` completes without errors before starting work.
 
 ## Project Architecture
@@ -31,7 +30,7 @@ src/
 
 ### Key principles
 
-- **Raycast compatibility is the priority.** Extensions built for Raycast should work in SuperCmd with minimal or no changes. Before changing anything in `src/renderer/src/raycast-api/`, verify it doesn't break existing extensions.
+- **Raycast compatibility is the priority.** Extensions built for Raycast should work in Zapper with minimal or no changes. Before changing anything in `src/renderer/src/raycast-api/`, verify it doesn't break existing extensions.
 - **System-level logic lives in `src/main/`.** IPC, settings, file access, and native module bridges belong here.
 - **UI code lives in `src/renderer/src/`.** Views, hooks, and components go here.
 
@@ -73,7 +72,7 @@ Keep PRs focused. A single PR should address one concern. If you're working on a
 
 ## Working with Extensions
 
-SuperCmd aims for compatibility with [Raycast extensions](https://www.raycast.com/store). When working on the runtime:
+Zapper aims for compatibility with [Raycast extensions](https://www.raycast.com/store). When working on the runtime:
 
 - Test against popular extensions (Calculator, Clipboard History, etc.)
 - The API shims are in `src/renderer/src/raycast-api/` — check the [Raycast API docs](https://developers.raycast.com/api-reference/) for reference
@@ -85,7 +84,7 @@ When opening an issue, include:
 
 - macOS version
 - Node.js version (`node -v`)
-- SuperCmd version (Settings → About, or check `package.json`)
+- Zapper version (Settings → About, or check `package.json`)
 - Steps to reproduce
 - Expected vs actual behavior
 - Console logs if available (Cmd+Option+I to open DevTools)

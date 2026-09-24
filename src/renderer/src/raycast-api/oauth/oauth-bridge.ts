@@ -100,7 +100,7 @@ export function buildOAuthRedirectUri(redirectMethod: string, extensionName?: st
     case 'app':
     case 'appURI':
     default:
-      return `supercmd://oauth/callback?packageName=${encodeURIComponent(pkg)}`;
+      return `zapper://oauth/callback?packageName=${encodeURIComponent(pkg)}`;
   }
 }
 
@@ -147,7 +147,7 @@ export async function buildAuthorizationRequest(params: {
 export function parseOAuthCallbackUrl(rawUrl: string): OAuthCallbackResult | null {
   try {
     const parsed = new URL(rawUrl);
-    if (parsed.protocol !== 'supercmd:') return null;
+    if (parsed.protocol !== 'zapper:') return null;
 
     const isOAuthCallback =
       (parsed.hostname === 'oauth' && parsed.pathname === '/callback') ||

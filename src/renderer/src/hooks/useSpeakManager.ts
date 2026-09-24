@@ -1,7 +1,7 @@
 /**
  * useSpeakManager.ts
  *
- * State and logic for the SuperCmd Read (TTS / speak) overlay.
+ * State and logic for the Zapper Read (TTS / speak) overlay.
  * - speakStatus: current playback state (idle → loading → speaking → done/error)
  * - speakOptions: active voice + playback rate selection
  * - edgeTtsVoices / configuredEdgeTtsVoice: Edge TTS voice list and user preference
@@ -114,7 +114,7 @@ export function useSpeakManager({
 
   const speakPortalTarget = useDetachedPortalWindow(showSpeak, {
     name: 'supercmd-speak-window',
-    title: 'SuperCmd Read',
+    title: 'Zapper Read',
     width: 520,
     height: 112,
     anchor: 'top-right',

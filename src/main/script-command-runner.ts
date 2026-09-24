@@ -634,7 +634,7 @@ function buildTemplateScript(title: string): string {
 # @raycast.mode fullOutput
 
 # Optional parameters:
-# @raycast.packageName SuperCmd
+# @raycast.packageName Zapper
 # @raycast.icon 💡
 
 # Documentation:

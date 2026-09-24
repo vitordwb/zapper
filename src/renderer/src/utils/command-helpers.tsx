@@ -15,7 +15,7 @@
 import React from 'react';
 import { Search, Power, Settings, Puzzle, Sparkles, FileText, Mic, Volume2, Brain, TerminalSquare, RefreshCw, LayoutGrid, Lock, Trash2, Store, Globe, PanelTop, Bookmark, Clock, Menu } from 'lucide-react';
 import type { CommandInfo, EdgeTtsVoice } from '../../types/electron';
-import supercmdLogo from '../../../../supercmd.svg';
+import zapperLogo from '../../../../zapper.svg';
 import IconCalendar from '../icons/Calendar';
 import IconCamera from '../icons/Camera';
 import IconClipboard from '../icons/Clipboard';
@@ -438,7 +438,7 @@ export function formatShortcutLabel(shortcut: string): string {
 
 export function isSuperCmdAppTitle(title: string): boolean {
   const key = String(title || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
-  return key === 'supercmd' || key === 'supercmd';
+  return key === 'zapper';
 }
 
 export function isSuperCmdSystemCommand(commandId: string): boolean {
@@ -512,7 +512,7 @@ export function buildReadVoiceOptions(
 export function renderSuperCmdLogoIcon(): React.ReactNode {
   return (
     <img
-      src={supercmdLogo}
+      src={zapperLogo}
       alt=""
       className="w-5 h-5 object-contain"
       draggable={false}
@@ -521,7 +521,7 @@ export function renderSuperCmdLogoIcon(): React.ReactNode {
 }
 
 export function getCommandDisplayTitle(command: CommandInfo, t?: Translator): string {
-  if (command.category === 'app' && isSuperCmdAppTitle(command.title)) return 'SuperCmd';
+  if (command.category === 'app' && isSuperCmdAppTitle(command.title)) return 'Zapper';
   if (t) {
     switch (String(command.id || '').trim()) {
       case 'system-open-settings':

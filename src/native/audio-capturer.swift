@@ -1,5 +1,5 @@
 // audio-capturer.swift
-// Native audio capture helper for SuperCmd whisper dictation.
+// Native audio capture helper for Zapper whisper dictation.
 //
 // Uses AVAudioEngine to capture microphone audio with minimal latency.
 // Communicates via JSON-over-stdin/stdout (same pattern as whisper-transcriber serve mode).

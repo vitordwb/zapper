@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
-import supercmdLogo from '../../../supercmd.png';
+import zapperLogo from '../../../zapper.png';
 import type {
   CommandInfo,
   ExtensionBundle,
@@ -466,7 +466,7 @@ const App: React.FC = () => {
 
   const cursorPromptPortalTarget = useDetachedPortalWindow(showCursorPrompt, {
     name: 'supercmd-prompt-window',
-    title: 'SuperCmd Prompt',
+    title: 'Zapper Prompt',
     width: 500,
     height: 132,
     anchor: 'caret',
@@ -477,7 +477,7 @@ const App: React.FC = () => {
 
   const windowManagerPortalTarget = useDetachedPortalWindow(showWindowManager, {
     name: 'supercmd-window-manager-window',
-    title: 'SuperCmd Window Manager',
+    title: 'Zapper Window Manager',
     width: 380,
     height: 276,
     anchor: 'bottom-right',
@@ -904,7 +904,7 @@ const App: React.FC = () => {
           setShowFileSearch(false);
           setExtensionPreferenceSetup(null);
         } else {
-          // No-view hotkey commands never call showWindow(), so SuperCmd never
+          // No-view hotkey commands never call showWindow(), so Zapper never
           // takes focus — the user's active app keeps focus throughout.
           // activateLastFrontmostApp() is intentionally NOT called here: it
           // uses stale lastFrontmostApp data and can activate the wrong app.
@@ -2989,7 +2989,7 @@ const App: React.FC = () => {
 
       launcherViewMode={launcherViewMode}
       isCompactCollapsed={isCompactCollapsed}
-      logoSrc={supercmdLogo}
+      logoSrc={zapperLogo}
       onShowCompactLauncher={showCompactLauncher}
 
       listRef={listRef}

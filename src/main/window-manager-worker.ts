@@ -91,9 +91,9 @@ function isSelfManagedWindow(info: NodeWindowInfo | null): boolean {
     if (pid === process.ppid) return true;
   }
   const title = String(info.title || '').toLowerCase();
-  if (title.includes('supercmd')) return true;
+  if (title.includes('zapper')) return true;
   const appPath = String(info.path || '');
-  if (appPath.includes('SuperCmd.app')) return true;
+  if (appPath.includes('Zapper.app')) return true;
   return false;
 }
 

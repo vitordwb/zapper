@@ -1,0 +1,83 @@
+name: Release Zapper
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing version tag matching package.json (for example v1.0.26)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'vitordwb/zapper'
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+
+      - name: Set up native ARM64 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          architecture: arm64
+          cache: npm
+
+      - name: Check signing prerequisites and version
+        run: node scripts/release.mjs --check
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and verify signed, notarized release
+        run: npm run release
+
+      - name: Check generated Homebrew cask syntax
+        run: ruby -c out/zapper.rb
+
+      - name: Preserve release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zapper-${{ env.RELEASE_TAG }}-arm64
+          if-no-files-found: error
+          path: |
+            out/Zapper-*-arm64.dmg
+            out/Zapper-*-arm64.zip
+            out/*.blockmap
+            out/*-mac.yml
+            out/zapper.rb
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Zapper ${{ env.RELEASE_TAG }}
+          generate_release_notes: true
+          prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
+          fail_on_unmatched_files: true
+          files: |
+            out/Zapper-*-arm64.dmg
+            out/Zapper-*-arm64.zip
+            out/*.blockmap
+            out/*-mac.yml
+            out/zapper.rb

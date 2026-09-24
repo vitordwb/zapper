@@ -1,11 +1,11 @@
 {
-  "name": "supercmd",
+  "name": "zapper",
   "version": "1.0.26",
-  "description": "SuperCmd — Productivity supercharged",
-  "author": "Shobhit Bhosure - (https://x.com/nullbytes00)",
-  "homepage": "https://supercmd.sh",
+  "description": "Zapper — Personal macOS launcher",
+  "author": "Vitor Watanabe",
+  "homepage": "https://github.com/vitordwb/zapper",
   "main": "dist/main/main.js",
-  "repository": "https://github.com/SuperCmdLabs/SuperCmd",
+  "repository": "https://github.com/vitordwb/zapper",
   "scripts": {
     "dev": "npm run build:main && concurrently \"npm run watch:main\" \"npm run dev:renderer\" \"npm run start:electron\"",
     "watch:main": "tsc -p tsconfig.main.json --watch",
@@ -16,14 +16,17 @@
     "build:renderer": "vite build",
     "check:i18n": "node scripts/check-i18n.mjs",
     "test": "node --test 'scripts/test-*.mjs'",
+    "release": "node scripts/release.mjs",
+    "release:check": "node scripts/release.mjs --check",
+    "homebrew:cask": "node scripts/generate-homebrew-cask.mjs",
     "build:native": "node scripts/build-native.mjs",
     "ensure:cross-arch-esbuild": "node scripts/ensure-cross-arch-esbuild.mjs",
     "postinstall": "node scripts/ensure-cross-arch-esbuild.mjs && electron-builder install-app-deps",
     "start": "electron .",
-    "package": "cross-env NODE_ENV=production npm run build && electron-builder",
-    "package:unsigned": "cross-env NODE_ENV=production CSC_IDENTITY_AUTO_DISCOVERY=false npm run build && electron-builder --mac dmg -c.mac.identity=null -c.mac.notarize=false"
+    "package": "cross-env NODE_ENV=production npm run build && electron-builder --mac --arm64 --publish never",
+    "package:unsigned": "cross-env NODE_ENV=production CSC_IDENTITY_AUTO_DISCOVERY=false npm run build && electron-builder --mac dmg --arm64 --publish never -c.mac.identity=null -c.mac.notarize=false"
   },
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.11.5",
     "@types/react": "^18.2.48",
@@ -33,7 +36,7 @@
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron": "^41.2.1",
-    "electron-builder": "^24.13.3",
+    "electron-builder": "^26.15.3",
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
@@ -41,12 +44,8 @@
     "wait-on": "^7.2.0"
   },
   "dependencies": {
-    "@aptabase/electron": "^0.3.1",
-    "@esbuild/darwin-arm64": "0.19.12",
-    "@esbuild/darwin-x64": "0.19.12",
     "@phosphor-icons/react": "^2.1.10",
     "@raycast/api": "^1.104.5",
-    "electron-builder-notarize": "^1.5.2",
     "electron-liquid-glass": "^1.1.1",
     "electron-updater": "^6.7.3",
     "esbuild": "^0.19.12",
@@ -57,18 +56,32 @@
     "react-dom": "^18.2.0",
     "transliteration": "^2.6.1"
   },
+  "optionalDependencies": {
+    "@esbuild/darwin-arm64": "0.19.12",
+    "@esbuild/darwin-x64": "0.19.12"
+  },
   "build": {
-    "appId": "com.supercmd.app",
-    "productName": "SuperCmd",
+    "appId": "com.vitordwb.zapper",
+    "productName": "Zapper",
+    "copyright": "Copyright © 2026 Shobhit Bhosure; Zapper modifications © 2026 Vitor Watanabe",
+    "artifactName": "Zapper-${version}-${arch}.${ext}",
+    "protocols": [
+      {
+        "name": "Zapper",
+        "schemes": [
+          "zapper"
+        ]
+      }
+    ],
     "publish": [
       {
         "provider": "github",
-        "owner": "SuperCmdLabs",
-        "repo": "SuperCmd",
+        "owner": "vitordwb",
+        "repo": "zapper",
         "releaseType": "release"
       }
     ],
-    "icon": "supercmd.icns",
+    "icon": "zapper.icns",
     "asarUnpack": [
       "dist/native/**",
       "dist/main/window-manager-worker.js",
@@ -76,9 +89,12 @@
       "node_modules/@esbuild/**",
       "node_modules/node-edge-tts/**",
       "node_modules/node-window-manager/**",
+      "node_modules/node-gyp-build/**",
+      "node_modules/extract-file-icon/**",
       "node_modules/electron-liquid-glass/**"
     ],
     "files": [
+      "LICENSE",
       "dist/**/*",
       "!dist/native/**/*.dSYM",
       "!dist/native/**/*.dSYM/**",
@@ -86,12 +102,12 @@
     ],
     "extraResources": [
       {
-        "from": "supercmd.svg",
-        "to": "supercmd.svg"
+        "from": "zapper.svg",
+        "to": "zapper.svg"
       },
       {
-        "from": "supercmd.png",
-        "to": "supercmd.png"
+        "from": "zapper.png",
+        "to": "zapper.png"
       }
     ],
     "directories": {
@@ -99,33 +115,35 @@
     },
     "mac": {
       "category": "public.app-category.utilities",
-      "icon": "supercmd.icns",
+      "icon": "zapper.icns",
       "target": [
         {
-          "target": "default",
+          "target": "dmg",
           "arch": [
-            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
             "arm64"
           ]
         }
       ],
       "hardenedRuntime": true,
-      "notarize": {
-        "teamId": "T7HT4U4666"
-      },
-      "identity": "Shobhit Bhosure (T7HT4U4666)",
+      "notarize": true,
       "entitlements": "./entitlements.mac.plist",
       "entitlementsInherit": "./entitlements.mac.plist",
       "extendInfo": {
-        "NSCameraUsageDescription": "SuperCmd needs camera access to show and capture camera previews.",
-        "NSCalendarsUsageDescription": "SuperCmd needs calendar access to show your schedule and upcoming events.",
-        "NSCalendarsFullAccessUsageDescription": "SuperCmd needs full calendar access to show your schedule and upcoming events.",
-        "NSMicrophoneUsageDescription": "SuperCmd needs microphone access for Whisper dictation.",
-        "NSSpeechRecognitionUsageDescription": "SuperCmd uses speech recognition for native Whisper dictation."
+        "NSCameraUsageDescription": "Zapper needs camera access to show and capture camera previews.",
+        "NSCalendarsUsageDescription": "Zapper needs calendar access to show your schedule and upcoming events.",
+        "NSCalendarsFullAccessUsageDescription": "Zapper needs full calendar access to show your schedule and upcoming events.",
+        "NSMicrophoneUsageDescription": "Zapper needs microphone access for Whisper dictation.",
+        "NSSpeechRecognitionUsageDescription": "Zapper uses speech recognition for native Whisper dictation."
       }
     },
     "linux": {
-      "icon": "supercmd.svg"
+      "icon": "zapper.svg"
     }
   }
 }

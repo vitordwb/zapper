@@ -97,7 +97,7 @@ export interface CommandInfo {
     title?: string;
     data?: Array<{ title?: string; value?: string }>;
   }>;
-  /** SuperCmd deeplink (e.g. `supercmd://extensions/<owner>/<ext>/<cmd>`). Set for extension and script commands. */
+  /** Zapper deeplink (e.g. `zapper://extensions/<owner>/<ext>/<cmd>`). Set for extension and script commands. */
   deeplink?: string;
   /** Bundle path on disk (used for icon extraction) */
   _bundlePath?: string;
@@ -446,7 +446,7 @@ function canonicalSettingsTitle(title: string, bundleId?: string): string {
 
 function canonicalAppTitle(name: string): string {
   const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
-  if (key === 'supercmd' || key === 'supercmd') return 'SuperCmd';
+  if (key === 'zapper') return 'Zapper';
   return name;
 }
 
@@ -1317,26 +1317,26 @@ async function discoverAndBuildCommands(): Promise<CommandInfo[]> {
     },
     {
       id: 'system-open-settings',
-      title: 'SuperCmd Settings',
-      keywords: ['settings', 'preferences', 'config', 'configuration', 'supercmd'],
+      title: 'Zapper Settings',
+      keywords: ['settings', 'preferences', 'config', 'configuration', 'zapper'],
       category: 'system',
     },
     {
       id: 'system-open-ai-settings',
-      title: 'SuperCmd AI',
-      keywords: ['ai', 'model', 'provider', 'openai', 'anthropic', 'gemini', 'ollama', 'supercmd'],
+      title: 'Zapper AI',
+      keywords: ['ai', 'model', 'provider', 'openai', 'anthropic', 'gemini', 'ollama', 'zapper'],
       category: 'system',
     },
     {
       id: 'system-supercmd-whisper',
-      title: 'SuperCmd Whisper',
-      keywords: ['whisper', 'speech', 'voice', 'dictation', 'transcribe', 'overlay', 'supercmd'],
+      title: 'Zapper Whisper',
+      keywords: ['whisper', 'speech', 'voice', 'dictation', 'transcribe', 'overlay', 'zapper'],
       category: 'system',
     },
     {
       id: 'system-supercmd-speak',
-      title: 'SuperCmd Read',
-      keywords: ['speak', 'tts', 'read', 'selected text', 'edge-tts', 'speechify', 'jarvis', 'supercmd'],
+      title: 'Zapper Read',
+      keywords: ['speak', 'tts', 'read', 'selected text', 'edge-tts', 'speechify', 'jarvis', 'zapper'],
       category: 'system',
     },
     {
@@ -1629,25 +1629,25 @@ async function discoverAndBuildCommands(): Promise<CommandInfo[]> {
     },
     {
       id: 'system-open-extensions-settings',
-      title: 'SuperCmd Extensions',
-      keywords: ['extensions', 'store', 'community', 'hotkey', 'supercmd'],
+      title: 'Zapper Extensions',
+      keywords: ['extensions', 'store', 'community', 'hotkey', 'zapper'],
       category: 'system',
     },
     {
       id: 'system-open-extension-store',
       title: 'Extension Store',
-      keywords: ['extension', 'store', 'browse', 'install', 'community', 'marketplace', 'supercmd'],
+      keywords: ['extension', 'store', 'browse', 'install', 'community', 'marketplace', 'zapper'],
       category: 'system',
     },
     {
       id: 'system-open-onboarding',
-      title: 'SuperCmd Onboarding',
-      keywords: ['welcome', 'onboarding', 'intro', 'setup', 'supercmd'],
+      title: 'Zapper Onboarding',
+      keywords: ['welcome', 'onboarding', 'intro', 'setup', 'zapper'],
       category: 'system',
     },
     {
       id: 'system-quit-launcher',
-      title: 'Quit SuperCmd',
+      title: 'Quit Zapper',
       keywords: ['exit', 'close', 'quit', 'stop'],
       category: 'system',
     },
@@ -1772,7 +1772,7 @@ async function discoverAndBuildCommands(): Promise<CommandInfo[]> {
     {
       id: 'system-check-for-updates',
       title: 'Check for Updates',
-      keywords: ['update', 'upgrade', 'version', 'download', 'install', 'supercmd'],
+      keywords: ['update', 'upgrade', 'version', 'download', 'install', 'zapper'],
       category: 'system',
     },
     {
@@ -1862,8 +1862,8 @@ async function discoverAndBuildCommands(): Promise<CommandInfo[]> {
       disabledByDefault: ext.disabledByDefault,
       commandArgumentDefinitions: ext.commandArgumentDefinitions || [],
       deeplink: ext.owner
-        ? `supercmd://extensions/${encodeURIComponent(ext.owner)}/${encodeURIComponent(ext.extName)}/${encodeURIComponent(ext.cmdName)}`
-        : `supercmd://extensions/${encodeURIComponent(ext.extName)}/${encodeURIComponent(ext.cmdName)}`,
+        ? `zapper://extensions/${encodeURIComponent(ext.owner)}/${encodeURIComponent(ext.extName)}/${encodeURIComponent(ext.cmdName)}`
+        : `zapper://extensions/${encodeURIComponent(ext.extName)}/${encodeURIComponent(ext.cmdName)}`,
     }));
   } catch (e) {
     console.error('Failed to discover installed extensions:', e);
@@ -1893,7 +1893,7 @@ async function discoverAndBuildCommands(): Promise<CommandInfo[]> {
         data: arg.data,
       })),
       deeplink: script.slug
-        ? `supercmd://script-commands/${encodeURIComponent(script.slug)}`
+        ? `zapper://script-commands/${encodeURIComponent(script.slug)}`
         : undefined,
     }));
   } catch (e) {
@@ -1977,10 +1977,10 @@ async function discoverAndBuildCommands(): Promise<CommandInfo[]> {
   // Assign a universal deeplink to any launcher command that doesn't already
   // have one (extensions + scripts keep their owner/slug-based schemes above).
   // This lets apps, settings, system, and quick-link commands be copied and
-  // re-invoked via `supercmd://commands/<id>`.
+  // re-invoked via `zapper://commands/<id>`.
   for (const cmd of allCommands) {
     if (!cmd.deeplink && cmd.id) {
-      cmd.deeplink = `supercmd://commands/${encodeURIComponent(cmd.id)}`;
+      cmd.deeplink = `zapper://commands/${encodeURIComponent(cmd.id)}`;
     }
   }
 

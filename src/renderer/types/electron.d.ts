@@ -61,7 +61,7 @@ export interface CommandInfo {
     title?: string;
     data?: Array<{ title?: string; value?: string }>;
   }>;
-  /** SuperCmd deeplink (e.g. `supercmd://extensions/<owner>/<ext>/<cmd>`). Set for extension and script commands. */
+  /** Zapper deeplink (e.g. `zapper://extensions/<owner>/<ext>/<cmd>`). Set for extension and script commands. */
   deeplink?: string;
 }
 

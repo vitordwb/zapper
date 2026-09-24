@@ -1,5 +1,5 @@
 /**
- * Main Process — SuperCmd
+ * Main Process — Zapper
  *
  * Handles:
  * - Global shortcut registration (configurable)
@@ -220,13 +220,10 @@ import {
 } from './raycast-config-import';
 import { runExecCommand, type ExecCommandOptions } from './exec-command';
 
-import { initialize as initAptabase, trackEvent } from "@aptabase/electron/main";
-
 const electron = require('electron');
 const { app, BrowserWindow, globalShortcut, ipcMain, screen, shell, Menu, Tray, nativeImage, protocol, net, dialog, systemPreferences, clipboard: systemClipboard } = electron;
-try {
-  app.setName('SuperCmd');
-} catch {}
+app.setName('Zapper');
+app.setPath('userData', path.join(app.getPath('appData'), 'Zapper'));
 
 // ─── Native Binary Helpers ──────────────────────────────────────────
 
@@ -576,10 +573,10 @@ async function transcribeAudioWithParakeet(opts: {
 }): Promise<string> {
   const status = getParakeetModelStatus();
   if (status.state === 'downloading') {
-    throw new Error('Parakeet models are still downloading. Finish setup from onboarding or Settings -> AI -> SuperCmd Whisper.');
+    throw new Error('Parakeet models are still downloading. Finish setup from onboarding or Settings -> AI -> Zapper Whisper.');
   }
   if (status.state !== 'downloaded') {
-    throw new Error('Parakeet models have not been downloaded yet. Download them from onboarding or Settings -> AI -> SuperCmd Whisper.');
+    throw new Error('Parakeet models have not been downloaded yet. Download them from onboarding or Settings -> AI -> Zapper Whisper.');
   }
 
   // Ensure the persistent server process is running (models loaded in memory)
@@ -838,7 +835,7 @@ async function transcribeAudioWithQwen3(opts: {
 }): Promise<string> {
   const status = getQwen3ModelStatus();
   if (status.state === 'downloading') throw new Error('Qwen3 models are still downloading.');
-  if (status.state !== 'downloaded') throw new Error('Qwen3 models have not been downloaded yet. Download them from Settings -> AI -> SuperCmd Whisper.');
+  if (status.state !== 'downloaded') throw new Error('Qwen3 models have not been downloaded yet. Download them from Settings -> AI -> Zapper Whisper.');
 
   await ensureQwen3Server();
 
@@ -944,7 +941,7 @@ async function downloadFileWithRedirects(
       parsedUrl.toString(),
       {
         headers: {
-          'User-Agent': 'SuperCmd/1.0 whisper.cpp bootstrap',
+          'User-Agent': 'Zapper/1.0 whisper.cpp bootstrap',
           'Accept': '*/*',
         },
       },
@@ -1109,7 +1106,7 @@ function ensureWhisperCppTranscriberBinary(): string {
   const runtimeDir = getWhisperCppRuntimeDir();
   if (!fs.existsSync(frameworkPath)) {
     throw new Error(
-      `SuperCmd Whisper runtime is missing. Rebuild native helpers to download the official ${WHISPERCPP_FRAMEWORK_VERSION} macOS framework.`
+      `Zapper Whisper runtime is missing. Rebuild native helpers to download the official ${WHISPERCPP_FRAMEWORK_VERSION} macOS framework.`
     );
   }
 
@@ -1120,7 +1117,7 @@ function ensureWhisperCppTranscriberBinary(): string {
   ]);
 
   if (!sourcePath) {
-    throw new Error('SuperCmd Whisper transcriber source is missing. Run npm run build:native to regenerate the binary.');
+    throw new Error('Zapper Whisper transcriber source is missing. Run npm run build:native to regenerate the binary.');
   }
 
   fs.mkdirSync(path.dirname(binaryPath), { recursive: true });
@@ -1140,7 +1137,7 @@ function ensureWhisperCppTranscriberBinary(): string {
     console.log('[Whisper][whisper.cpp] Compiled whisper-transcriber binary');
   } catch (error) {
     console.error('[Whisper][whisper.cpp] Compile failed:', error);
-    throw new Error('Failed to compile SuperCmd Whisper transcriber. Ensure Xcode Command Line Tools are installed.');
+    throw new Error('Failed to compile Zapper Whisper transcriber. Ensure Xcode Command Line Tools are installed.');
   }
 
   return binaryPath;
@@ -1286,15 +1283,15 @@ async function transcribeAudioWithWhisperCpp(opts: {
 }): Promise<string> {
   const mimeType = String(opts.mimeType || 'audio/wav').toLowerCase();
   if (mimeType && !mimeType.includes('wav')) {
-    throw new Error(`SuperCmd Whisper transcription expects WAV audio, received ${mimeType}.`);
+    throw new Error(`Zapper Whisper transcription expects WAV audio, received ${mimeType}.`);
   }
 
   const status = getWhisperCppModelStatus();
   if (status.state === 'downloading') {
-    throw new Error('The SuperCmd Whisper model is still downloading. Finish setup from onboarding or Settings -> AI -> SuperCmd Whisper.');
+    throw new Error('The Zapper Whisper model is still downloading. Finish setup from onboarding or Settings -> AI -> Zapper Whisper.');
   }
   if (status.state !== 'downloaded') {
-    throw new Error('The SuperCmd Whisper model has not been downloaded yet. Download it from onboarding or Settings -> AI -> SuperCmd Whisper.');
+    throw new Error('The Zapper Whisper model has not been downloaded yet. Download it from onboarding or Settings -> AI -> Zapper Whisper.');
   }
 
   // Ensure the persistent server is running (model loaded in memory)
@@ -2165,10 +2162,9 @@ function isSelfManagedWindow(win: NodeWindowInfo | null | undefined): boolean {
     const exePath = app.getPath('exe');
     if (appPath === exePath) return true;
     if (appName && appPath.includes(`${appName}.app`)) return true;
-    if (appPath.includes('SuperCmd.app')) return true;
   }
   const title = String(win.title || '');
-  if (title.toLowerCase().includes('supercmd')) return true;
+  if (title.toLowerCase().includes('zapper')) return true;
   return false;
 }
 
@@ -3216,7 +3212,7 @@ function moveWindowToCurrentAerospaceWorkspace(): void {
 
     // Find our window(s) by bundle-id
     const windowsRaw = String(
-      execFileSync('aerospace', ['list-windows', '--all', '--app-bundle-id', 'com.supercmd.app', '--format', '%{window-id} %{workspace}'], {
+      execFileSync('aerospace', ['list-windows', '--all', '--app-bundle-id', 'com.vitordwb.zapper', '--format', '%{window-id} %{workspace}'], {
         timeout: 500,
         stdio: ['ignore', 'pipe', 'ignore'],
       }) || ''
@@ -3621,10 +3617,10 @@ async function executeNativeWindowAdjustByAction(
     const hintedAppPath = String(targetHint?.appPath || '').trim();
     const hintedWindowId = Math.trunc(Number(targetHint?.windowId));
     const hintedWorkArea = cloneWorkArea(targetHint?.workArea || null);
-    if (hintedBundleId && hintedBundleId !== 'com.supercmd.app' && hintedBundleId !== 'com.supercmd') {
+    if (hintedBundleId && hintedBundleId !== 'com.vitordwb.zapper') {
       args.push('--bundle-id', hintedBundleId);
     }
-    if (hintedAppPath && !hintedAppPath.includes('/SuperCmd.app')) {
+    if (hintedAppPath && !hintedAppPath.includes('/Zapper.app')) {
       args.push('--app-path', hintedAppPath);
     }
     if (Number.isFinite(hintedWindowId) && hintedWindowId > 0) {
@@ -4557,7 +4553,7 @@ type HomeFolderAccessProbeResult = {
 
 function describeMicrophoneStatus(status: MicrophoneAccessStatus): string {
   if (status === 'denied') {
-    return 'Microphone access is denied. Enable SuperCmd in System Settings -> Privacy & Security -> Microphone.';
+    return 'Microphone access is denied. Enable Zapper in System Settings -> Privacy & Security -> Microphone.';
   }
   if (status === 'restricted') {
     return 'Microphone access is restricted on this device.';
@@ -4633,7 +4629,7 @@ async function promptForHomeFolderAccess(): Promise<{ requested: boolean; select
     const hostWindow = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
     const result = await dialog.showOpenDialog(hostWindow, {
       title: 'Allow Home Folder Access',
-      message: 'Select your Home folder to let SuperCmd index files for Search Files.',
+      message: 'Select your Home folder to let Zapper index files for Search Files.',
       defaultPath: homeDir,
       buttonLabel: 'Select Home Folder',
       properties: ['openDirectory', 'dontAddToRecent'],
@@ -4750,7 +4746,7 @@ async function ensureMicrophoneAccess(prompt = true): Promise<MicrophonePermissi
     };
   }
 
-  // Request from the Electron app process first so macOS registers SuperCmd
+  // Request from the Electron app process first so macOS registers Zapper
   // itself in Privacy & Security -> Microphone.
   let requested = false;
   let electronError = '';
@@ -4958,7 +4954,7 @@ async function requestOnboardingPermissionAccess(target: OnboardingPermissionTar
       canPrompt: true,
       error:
         promptResult.error ||
-        `${deniedMessage}Allow SuperCmd in System Settings -> Privacy & Security -> Files and Folders, then request again.`,
+        `${deniedMessage}Allow Zapper in System Settings -> Privacy & Security -> Files and Folders, then request again.`,
     };
   }
 
@@ -5020,7 +5016,7 @@ async function requestOnboardingPermissionAccess(target: OnboardingPermissionTar
   }
 
   // Input Monitoring: first check whether access is already granted.
-  // If not, launch the helper detached so macOS can add SuperCmd to the
+  // If not, launch the helper detached so macOS can add Zapper to the
   // Input Monitoring list and the user can manually enable it.
   const alreadyGranted = await checkInputMonitoringAccess();
   if (alreadyGranted) {
@@ -5048,7 +5044,7 @@ async function requestOnboardingPermissionAccess(target: OnboardingPermissionTar
     canPrompt: true,
     error: binaryPath
       ? undefined
-      : 'Could not prepare Input Monitoring helper. Open System Settings -> Privacy & Security -> Input Monitoring and add SuperCmd manually.',
+      : 'Could not prepare Input Monitoring helper. Open System Settings -> Privacy & Security -> Input Monitoring and add Zapper manually.',
   };
 }
 let lastTypingCaretPoint: { x: number; y: number } | null = null;
@@ -5523,7 +5519,7 @@ async function ensureSpeechRecognitionAccess(prompt = true): Promise<SpeechRecog
       requested: false,
       speechStatus: 'unknown',
       microphoneStatus: readMicrophoneAccessStatus(),
-      error: 'Speech recognizer helper is missing. Reinstall SuperCmd and retry.',
+      error: 'Speech recognizer helper is missing. Reinstall Zapper and retry.',
     };
   }
 
@@ -7276,7 +7272,7 @@ function handleOAuthCallbackUrl(rawUrl: string): void {
   console.log('[OAuth] handleOAuthCallbackUrl called with:', rawUrl);
   try {
     const parsed = new URL(rawUrl);
-    if (parsed.protocol !== 'supercmd:') return;
+    if (parsed.protocol !== 'zapper:') return;
     const isOAuthCallback =
       (parsed.hostname === 'oauth' && parsed.pathname === '/callback') ||
       parsed.pathname === '/oauth/callback' ||
@@ -7328,11 +7324,11 @@ app.on('open-url', (event: any, url: string) => {
   event.preventDefault();
   console.log('[open-url] event received:', url);
 
-  // Handle note deeplinks: supercmd://notes/<note-id>
-  // Handle canvas deeplinks: supercmd://canvas/<canvas-id>
+  // Handle note deeplinks: zapper://notes/<note-id>
+  // Handle canvas deeplinks: zapper://canvas/<canvas-id>
   try {
     const parsed = new URL(url);
-    if (parsed.protocol === 'supercmd:' && parsed.hostname === 'notes') {
+    if (parsed.protocol === 'zapper:' && parsed.hostname === 'notes') {
       const noteId = parsed.pathname.replace(/^\//, '');
       if (noteId) {
         const note = getNoteById(noteId);
@@ -7343,7 +7339,7 @@ app.on('open-url', (event: any, url: string) => {
         }
       }
     }
-    if (parsed.protocol === 'supercmd:' && parsed.hostname === 'canvas') {
+    if (parsed.protocol === 'zapper:' && parsed.hostname === 'canvas') {
       const canvasId = parsed.pathname.replace(/^\//, '');
       if (canvasId) {
         pendingCanvasJson = JSON.stringify({ id: canvasId });
@@ -7355,8 +7351,8 @@ app.on('open-url', (event: any, url: string) => {
     // not a valid URL, fall through to OAuth
   }
 
-  // Handle command-launch deeplinks: supercmd://extensions/<owner>/<ext>/<cmd>
-  // and supercmd://script-commands/<slug> (plus legacy raycast:// equivalents).
+  // Handle command-launch deeplinks: zapper://extensions/<owner>/<ext>/<cmd>
+  // and zapper://script-commands/<slug> (plus legacy raycast:// equivalents).
   if (isCommandDeepLink(url)) {
     void launchCommandDeepLink(url).catch((e) => {
       console.error(`[open-url] Failed to launch command deeplink: ${url}`, e);
@@ -7416,13 +7412,13 @@ function loadAppTrayIcon(): any {
   // SVG via createFromPath is handled by macOS NSImage natively → resolution-independent.
   // PNG is the fallback for environments where SVG loading fails.
   const candidates = [
-    path.join(process.cwd(), 'supercmd.svg'),
-    path.join(app.getAppPath(), 'supercmd.svg'),
-    path.join(process.resourcesPath || '', 'supercmd.svg'),
-    path.join(process.cwd(), 'supercmd.png'),
-    path.join(app.getAppPath(), 'supercmd.png'),
-    path.join(process.resourcesPath || '', 'supercmd.png'),
-    path.join(process.resourcesPath || '', 'supercmd.icns'),
+    path.join(process.cwd(), 'zapper.svg'),
+    path.join(app.getAppPath(), 'zapper.svg'),
+    path.join(process.resourcesPath || '', 'zapper.svg'),
+    path.join(process.cwd(), 'zapper.png'),
+    path.join(app.getAppPath(), 'zapper.png'),
+    path.join(process.resourcesPath || '', 'zapper.png'),
+    path.join(process.resourcesPath || '', 'zapper.icns'),
     path.join(process.resourcesPath || '', 'icon.png'),
     path.join(process.resourcesPath || '', 'icon.icns'),
   ].filter(Boolean);
@@ -7483,18 +7479,18 @@ function ensureAppTray(): void {
     if (process.platform === 'darwin' && iconInvisible) {
       appTray.setTitle('⌘');
     }
-    appTray.setToolTip('SuperCmd');
+    appTray.setToolTip('Zapper');
     appTray.setContextMenu(
       Menu.buildFromTemplate([
         {
-          label: 'Open SuperCmd',
+          label: 'Open Zapper',
           click: () => {
             void openLauncherFromUserEntry();
           },
         },
         { type: 'separator' },
         {
-          label: 'Quit SuperCmd',
+          label: 'Quit Zapper',
           click: () => {
             app.quit();
           },
@@ -7595,14 +7591,14 @@ type ParsedCommandDeepLink =
     };
 
 /**
- * Parse `supercmd://extensions/...` / `supercmd://script-commands/...` deeplinks.
+ * Parse `zapper://extensions/...` / `zapper://script-commands/...` deeplinks.
  * Also accepts the legacy `raycast://` scheme so extension authors that emit
  * Raycast-style URLs keep working.
  */
 function parseCommandDeepLink(url: string): ParsedCommandDeepLink | null {
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== 'supercmd:' && parsed.protocol !== 'raycast:') return null;
+    if (parsed.protocol !== 'zapper:' && parsed.protocol !== 'raycast:') return null;
 
     const parts = parsed.pathname.split('/').filter(Boolean).map((v) => decodeURIComponent(v));
 
@@ -7642,10 +7638,10 @@ function parseCommandDeepLink(url: string): ParsedCommandDeepLink | null {
       };
     }
 
-    // `commands/<id>` is a SuperCmd-specific universal launcher — Raycast
+    // `commands/<id>` is a Zapper-specific universal launcher — Raycast
     // doesn't expose its internal command ids, so we only accept the
-    // `supercmd://` scheme here (not the legacy `raycast://` compat scheme).
-    if (parsed.hostname === 'commands' && parsed.protocol === 'supercmd:') {
+    // `zapper://` scheme here (not the legacy `raycast://` compat scheme).
+    if (parsed.hostname === 'commands' && parsed.protocol === 'zapper:') {
       const commandId = parts.join('/').trim();
       if (!commandId) return null;
       return {
@@ -7662,13 +7658,13 @@ function parseCommandDeepLink(url: string): ParsedCommandDeepLink | null {
 
 /**
  * True when the URL looks like a command-launch deeplink we can handle
- * (supercmd://extensions/..., supercmd://script-commands/..., or the
+ * (zapper://extensions/..., zapper://script-commands/..., or the
  * legacy raycast:// equivalents).
  */
 function isCommandDeepLink(url: string): boolean {
   if (!url) return false;
   if (url.startsWith('raycast://')) return true;
-  if (!url.startsWith('supercmd://')) return false;
+  if (!url.startsWith('zapper://')) return false;
   try {
     const host = new URL(url).hostname;
     return host === 'extensions' || host === 'script-commands' || host === 'commands';
@@ -7937,8 +7933,8 @@ async function handleRendererRecoveryGiveUp(logMessage: string): Promise<void> {
       defaultId: 0,
       cancelId: 1,
       noLink: true,
-      title: 'SuperCmd needs to restart',
-      message: 'SuperCmd ran into a problem',
+      title: 'Zapper needs to restart',
+      message: 'Zapper ran into a problem',
       detail:
         'The launcher stopped responding and could not recover on its own. ' +
         'Relaunch to continue.',
@@ -8142,16 +8138,16 @@ function createWindow(): void {
         y: popupPos.y,
         title:
           detachedPopupName === DETACHED_WHISPER_WINDOW_NAME
-            ? 'SuperCmd Whisper'
+            ? 'Zapper Whisper'
             : detachedPopupName === DETACHED_WHISPER_ONBOARDING_WINDOW_NAME
-            ? 'SuperCmd Whisper Onboarding'
+            ? 'Zapper Whisper Onboarding'
             : detachedPopupName === DETACHED_PROMPT_WINDOW_NAME
-              ? 'SuperCmd Prompt'
+              ? 'Zapper Prompt'
               : detachedPopupName === DETACHED_WINDOW_MANAGER_WINDOW_NAME
-                ? 'SuperCmd Window Manager'
+                ? 'Zapper Window Manager'
               : detachedPopupName === DETACHED_MEMORY_STATUS_WINDOW_NAME
-                ? 'SuperCmd Status'
-              : 'SuperCmd Read',
+                ? 'Zapper Status'
+              : 'Zapper Read',
         frame: false,
         titleBarStyle: 'hidden',
         titleBarOverlay: false,
@@ -8177,7 +8173,7 @@ function createWindow(): void {
         skipTaskbar: true,
         alwaysOnTop: true,
         // Create the whisper popup hidden then showInactive() in did-create-window
-        // so that macOS does not activate the SuperCmd app (which would briefly
+        // so that macOS does not activate the Zapper app (which would briefly
         // raise the settings window if it was previously opened).
         show: detachedPopupName !== DETACHED_WHISPER_WINDOW_NAME,
         acceptFirstMouse: true,
@@ -9038,7 +9034,7 @@ function captureFrontmostAppContext(): void {
         info.match(/"name"\s*=\s*"([^"]*)"/i)?.[1]?.trim() ||
         '';
       const appPath = info.match(/"path"\s*=\s*"([^"]*)"/)?.[1]?.trim() || '';
-      if (bundleId !== 'com.supercmd.app' && bundleId !== 'com.supercmd' && name !== 'SuperCmd' && name !== 'Electron') {
+      if (bundleId !== 'com.vitordwb.zapper' && name !== 'Zapper' && name !== 'Electron') {
         if (bundleId || name || appPath) {
           lastFrontmostApp = {
             name: name || (bundleId ? bundleId : 'Unknown'),
@@ -9073,7 +9069,7 @@ function captureFrontmostAppContext(): void {
     const result = execSync(`osascript -e '${script.replace(/'/g, "'\"'\"'")}'`, { encoding: 'utf-8' }).trim();
     markSystemEventsPermissionGranted();
     const [name, appPath, bundleId] = result.split('|||');
-    if (bundleId !== 'com.supercmd' && name !== 'SuperCmd' && name !== 'Electron') {
+    if (bundleId !== 'com.vitordwb.zapper' && name !== 'Zapper' && name !== 'Electron') {
       lastFrontmostApp = { name, path: appPath, bundleId };
     }
   } catch {
@@ -9273,7 +9269,7 @@ async function showWindow(options?: { systemCommandId?: string }): Promise<void>
 function hideWindow(): void {
   if (!mainWindow) return;
   // Already hidden — calling mainWindow.hide() again on macOS triggers an
-  // NSWindow orderOut which can shift focus to another SuperCmd window (e.g.
+  // NSWindow orderOut which can shift focus to another Zapper window (e.g.
   // the settings window), causing paste/keystroke events to land there instead
   // of the user's active app.
   if (!isVisible) return;
@@ -10439,7 +10435,7 @@ async function openLauncherAndRunSystemCommand(
       mainWindow?.webContents.send('run-system-command', commandId);
     }
     if (preserveFocusWhenHidden && !showLauncher) {
-      // Detached overlays can temporarily activate SuperCmd; restore the editor app.
+      // Detached overlays can temporarily activate Zapper; restore the editor app.
       [50, 180, 360].forEach((delayMs) => {
         setTimeout(() => {
           if (isVisible) return;
@@ -10664,7 +10660,7 @@ async function confirmQuitAllApps(source: 'launcher' | 'hotkey' | 'widget'): Pro
     noLink: true,
     title,
     message: `${title}?`,
-    detail: 'This will ask all currently running apps to quit. Finder and SuperCmd stay open.',
+    detail: 'This will ask all currently running apps to quit. Finder and Zapper stay open.',
     icon,
   };
 
@@ -11141,7 +11137,7 @@ async function runCommandById(commandId: string, source: 'launcher' | 'hotkey' |
     return await openLauncherAndRunSystemCommand(commandId, {
       showWindow: false,
       mode: launcherMode === 'onboarding' ? 'onboarding' : 'default',
-      // Keep focus in SuperCmd only for the panel command: detached window manager
+      // Keep focus in Zapper only for the panel command: detached window manager
       // closes itself on blur. Preset commands should restore app focus normally.
       preserveFocusWhenHidden: commandId !== 'system-window-management',
     });
@@ -11365,7 +11361,7 @@ async function startSpeakFromSelection(): Promise<boolean> {
         text: '',
         index: 0,
         total: chunks.length,
-        message: 'No local speech runtime is available. Reinstall SuperCmd and retry.',
+        message: 'No local speech runtime is available. Reinstall Zapper and retry.',
       });
       return false;
     }
@@ -13572,8 +13568,6 @@ async function rebuildExtensions() {
   }
 }
 
-initAptabase("A-US-7660732429");
-
 // Register custom protocol for serving extension assets (images etc.)
 // Must be called before app.whenReady()
 protocol.registerSchemesAsPrivileged([
@@ -13602,8 +13596,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 app.whenReady().then(async () => {
-  trackEvent("app_started");
-  app.setAsDefaultProtocolClient('supercmd');
+  app.setAsDefaultProtocolClient('zapper');
   scrubInternalClipboardProbe('app startup');
   // Warm the worker so the first window-management action does not race spawn.
   setTimeout(() => { ensureWindowManagerWorker(); }, 0);
@@ -14027,8 +14020,8 @@ app.whenReady().then(async () => {
       const provider = payload?.provider || (String(settings.ai?.textToSpeechModel || '').startsWith('elevenlabs-') ? 'elevenlabs' : 'edge-tts');
       const voice = String(payload?.voice || speakRuntimeOptions.voice || 'en-US-EricNeural').trim();
       const rate = parseSpeakRateInput(payload?.rate ?? speakRuntimeOptions.rate);
-      const sampleTextRaw = String(payload?.text || 'Hi, this is my voice in SuperCmd.');
-      const sampleText = sampleTextRaw.trim().slice(0, 240) || 'Hi, this is my voice in SuperCmd.';
+      const sampleTextRaw = String(payload?.text || 'Hi, this is my voice in Zapper.');
+      const sampleText = sampleTextRaw.trim().slice(0, 240) || 'Hi, this is my voice in Zapper.';
 
       const fs = require('fs');
       const os = require('os');
@@ -15605,7 +15598,7 @@ app.whenReady().then(async () => {
           parsed.toString(),
           {
             headers: {
-              'User-Agent': 'SuperCmd/1.0 (+https://github.com/raycast/extensions)',
+              'User-Agent': 'Zapper/1.0 (+https://github.com/raycast/extensions)',
               Accept: '*/*',
             },
           },
@@ -15812,7 +15805,7 @@ return appURL's |path|() as text`,
     }
 
     if (!systemEventsPermissionConfirmed) {
-      return { name: 'SuperCmd', path: '', bundleId: 'com.supercmd' };
+      return { name: 'Zapper', path: '', bundleId: 'com.vitordwb.zapper' };
     }
 
     try {
@@ -15831,7 +15824,7 @@ return appURL's |path|() as text`,
       const [name, appPath, bundleId] = result.split('|||');
       return { name, path: appPath, bundleId };
     } catch (e) {
-      return { name: 'SuperCmd', path: '', bundleId: 'com.supercmd' };
+      return { name: 'Zapper', path: '', bundleId: 'com.vitordwb.zapper' };
     }
   });
 
@@ -16346,7 +16339,7 @@ return appURL's |path|() as text`,
     async (_event: any, name: string) => {
       const success = await installExtension(name);
       if (!success) {
-        throw new Error(`Failed to install extension "${name}". Check SuperCmd main-process logs for details.`);
+        throw new Error(`Failed to install extension "${name}". Check Zapper main-process logs for details.`);
       }
       // Invalidate the command cache and rebuild it BEFORE we broadcast, so
       // the renderer's follow-up get-commands fetch lands on fresh data
@@ -17401,7 +17394,7 @@ if let tiff = image?.tiffRepresentation {
   });
 
   // Paste a file (image/GIF) into the previously focused app.
-  // Writes file data to clipboard, hides SuperCmd, and simulates Cmd+V,
+  // Writes file data to clipboard, hides Zapper, and simulates Cmd+V,
   // then restores the previous clipboard contents.
   ipcMain.handle('paste-file', async (_event: any, filePath: string) => {
     const fs = require('fs') as typeof import('fs');
@@ -17816,7 +17809,7 @@ if let tiff = image?.tiffRepresentation {
         throw new Error('AI is disabled. Enable AI in Settings -> AI to use Whisper.');
       }
       if (s.ai?.whisperEnabled === false) {
-        throw new Error('SuperCmd Whisper is disabled in Settings -> AI.');
+        throw new Error('Zapper Whisper is disabled in Settings -> AI.');
       }
 
       if (!fs.existsSync(audioPath)) {
@@ -17917,7 +17910,7 @@ if let tiff = image?.tiffRepresentation {
         throw new Error('AI is disabled. Enable AI in Settings -> AI to use Whisper.');
       }
       if (s.ai?.whisperEnabled === false) {
-        throw new Error('SuperCmd Whisper is disabled in Settings -> AI.');
+        throw new Error('Zapper Whisper is disabled in Settings -> AI.');
       }
 
       // Parse speechToTextModel to a concrete provider/model pair.
@@ -18928,7 +18921,7 @@ if let tiff = image?.tiffRepresentation {
       const result = await dialog.showOpenDialog(getDialogParentWindow(event), {
         properties: ['openDirectory', 'createDirectory', 'dontAddToRecent'],
         buttonLabel: 'Choose',
-        message: 'Choose a folder to store SuperCmd settings',
+        message: 'Choose a folder to store Zapper settings',
         defaultPath: app.getPath('home'),
       });
       if (result.canceled) return null;
@@ -19270,7 +19263,7 @@ if let tiff = image?.tiffRepresentation {
   registerCommandHotkeys(settings.commandHotkeys);
   registerDevToolsShortcut();
 
-  // Fallback: when another SuperCmd window gains focus (e.g. Settings),
+  // Fallback: when another Zapper window gains focus (e.g. Settings),
   // close the launcher in default mode even if a native blur event was missed.
   app.on('browser-window-focus', (_event: any, focusedWindow: InstanceType<typeof BrowserWindow>) => {
     if (!mainWindow || !isVisible) return;
@@ -19300,8 +19293,8 @@ if let tiff = image?.tiffRepresentation {
 
   app.on('activate', () => {
     // During onboarding the window is shown but may lose visual focus to a system
-    // permission dialog (e.g. "SuperCmd wants access to control System Events").
-    // When the user dismisses the dialog, macOS activates SuperCmd and we get this
+    // permission dialog (e.g. "Zapper wants access to control System Events").
+    // When the user dismisses the dialog, macOS activates Zapper and we get this
     // event. Bring the onboarding window back to the front so setup can continue.
     if (isVisible && launcherMode === 'onboarding' && mainWindow && !mainWindow.isDestroyed()) {
       try { app.focus({ steal: true }); } catch {}

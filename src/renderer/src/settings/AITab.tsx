@@ -4,8 +4,8 @@
  * Compact grouped layout with horizontal tabs for:
  * - API Keys
  * - LLM
- * - SuperCmd Whisper
- * - SuperCmd Read
+ * - Zapper Whisper
+ * - Zapper Read
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -1889,7 +1889,7 @@ const AITab: React.FC = () => {
                     onClick={async () => {
                       try {
                         setPreviewingVoice(true);
-                        const intro = `Hi, this is ${selectedEdgeVoice.label}. This is my voice in SuperCmd.`;
+                        const intro = `Hi, this is ${selectedEdgeVoice.label}. This is my voice in Zapper.`;
                         await window.electron.speakPreviewVoice({
                           voice: selectedEdgeVoice.id,
                           text: intro,
@@ -2004,7 +2004,7 @@ const AITab: React.FC = () => {
                       try {
                         setPreviewingVoice(true);
                         const selectedVoice = ELEVENLABS_VOICES.find((v) => v.id === selectedElevenLabsVoiceId) || elevenLabsVoices.find((v) => v.id === selectedElevenLabsVoiceId);
-                        const intro = `Hi, this is ${selectedVoice?.label || selectedVoice?.name || 'my voice'} from ElevenLabs in SuperCmd.`;
+                        const intro = `Hi, this is ${selectedVoice?.label || selectedVoice?.name || 'my voice'} from ElevenLabs in Zapper.`;
                         await window.electron.speakPreviewVoice({
                           provider: 'elevenlabs',
                           model: speakModelValue,

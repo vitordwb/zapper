@@ -548,7 +548,7 @@ function isSuperCmdWindow(win: ManagedWindow | null | undefined): boolean {
   const appName = normalizeText(win?.application?.name).toLowerCase();
   const appPath = normalizeText((win as any)?.application?.path).toLowerCase();
   const title = normalizeText(win?.title).toLowerCase();
-  return appName.includes('supercmd') || appPath.includes('supercmd') || title.includes('supercmd');
+  return appName.includes('zapper') || appPath.includes('zapper') || title.includes('zapper');
 }
 
 function isManageableWindow(win: ManagedWindow | null | undefined): win is ManagedWindow {
