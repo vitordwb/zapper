@@ -10,13 +10,8 @@
 
 Open-source launcher for macOS: **Raycast + Wispr Flow + Speechify + Memory + AI** in one app.
 
-SuperCmd gives you Raycast-style extension workflows, hold-to-speak dictation, natural text-to-speech, AI actions backed by configurable providers and memory, notes, canvas, clipboard history, snippet expansion, and window tiling — all from a single keyboard shortcut.
+Zapper is my version of SuperCmd gives you Raycast-style extension workflows, hold-to-speak dictation, natural text-to-speech, AI actions backed by configurable providers and memory, notes, canvas, clipboard history, snippet expansion, and window tiling — all from a single keyboard shortcut.
 
-<p align="center">
-  <a href="https://buymeacoffee.com/shobhit99"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="48"></a>
-  &nbsp;&nbsp;
-  <a href="https://cal.com/shobhit10"><img src="./assets/hire-me-button.svg" alt="Hire Me" height="45"></a>
-</p>
 
 ## What It Is
 
