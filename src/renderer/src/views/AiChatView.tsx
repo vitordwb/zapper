@@ -13,7 +13,7 @@
 
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { ArrowLeft, Plus, ChevronLeft, ChevronRight, History, Trash2, Eraser, Sparkles, Copy, Check } from 'lucide-react';
-import { renderSimpleMarkdown } from '../raycast-api/detail-markdown';
+import ChatMarkdown from './ChatMarkdown';
 import type { AiMessage, AiConversation } from '../hooks/useAiChat';
 import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 import zapperLogo from '../../../../zapper.png';
@@ -119,7 +119,7 @@ function formatRelativeTime(ts: number): string {
 
 // ─── QA Card ────────────────────────────────────────────────────────
 
-const QACard: React.FC<{ pair: QAPair; isStreaming: boolean }> = ({ pair, isStreaming }) => {
+const QACard: React.FC<{ pair: QAPair; isStreaming: boolean }> = React.memo(({ pair, isStreaming }) => {
   const answerContent = pair.answer?.content || '';
   const cancelled = pair.answer?.cancelled;
   const showThinking = isStreaming && !answerContent;
@@ -198,7 +198,7 @@ const QACard: React.FC<{ pair: QAPair; isStreaming: boolean }> = ({ pair, isStre
                 className="text-[14px] leading-[1.65] text-[var(--text-primary)] ai-markdown sc-ai-selectable"
                 style={cancelled ? { opacity: 0.75 } : undefined}
               >
-                {renderSimpleMarkdown(answerContent, (src) => src)}
+                <ChatMarkdown content={answerContent} streaming={isStreaming} />
                 {isStreaming && (
                   <span
                     aria-hidden="true"
@@ -250,7 +250,10 @@ const QACard: React.FC<{ pair: QAPair; isStreaming: boolean }> = ({ pair, isStre
       )}
     </div>
   );
-};
+}, (previous, next) => previous.pair.id === next.pair.id
+  && previous.pair.question === next.pair.question
+  && previous.pair.answer === next.pair.answer
+  && previous.isStreaming === next.isStreaming);
 
 // ─── Actions Overlay (launcher-style) ───────────────────────────────
 

@@ -17623,6 +17623,17 @@ if let tiff = image?.tiffRepresentation {
 
       const controller = new AbortController();
       activeAIRequests.set(requestId, controller);
+      let pendingChunk = '';
+      let flushTimer: ReturnType<typeof setTimeout> | null = null;
+      const flush = () => {
+        if (flushTimer) clearTimeout(flushTimer);
+        flushTimer = null;
+        if (pendingChunk && !controller.signal.aborted) {
+          event.sender.send('ai-stream-chunk', { requestId, chunk: pendingChunk });
+        }
+        pendingChunk = '';
+      };
+      controller.signal.addEventListener('abort', flush, { once: true });
 
       try {
         const latestUser = [...(messages || [])].reverse().find((m) => m.role === 'user');
@@ -17645,17 +17656,22 @@ if let tiff = image?.tiffRepresentation {
 
         for await (const chunk of gen) {
           if (controller.signal.aborted) break;
-          event.sender.send('ai-stream-chunk', { requestId, chunk });
+          pendingChunk += chunk;
+          if (pendingChunk.length >= 4096) flush();
+          else if (!flushTimer) flushTimer = setTimeout(flush, 16);
         }
 
         if (!controller.signal.aborted) {
+          flush();
           event.sender.send('ai-stream-done', { requestId });
         }
       } catch (e: any) {
         if (!controller.signal.aborted) {
+          flush();
           event.sender.send('ai-stream-error', { requestId, error: e?.message || 'AI request failed' });
         }
       } finally {
+        if (flushTimer) clearTimeout(flushTimer);
         activeAIRequests.delete(requestId);
       }
     }

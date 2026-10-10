@@ -19,7 +19,7 @@ Zapper is an Electron + React launcher with an `@raycast/api` and `@raycast/util
 - **Raycast extension compatibility** — `@raycast/api` and `@raycast/utils` shims; install extensions directly from the Raycast store
 - **Raycast backup import** — import encrypted `.rayconfig` backups with settings, hotkeys, extensions, scripts, quicklinks, snippets, notes, and extension prefs
 - **AI cursor prompt** — inline AI suggestions at your cursor position across any app
-- **AI chat** — chat with configurable providers (OpenAI / Anthropic / Ollama / Gemini / OpenAI-compatible)
+- **AI chat** — multi-turn streaming chat with configurable providers (OpenAI / Anthropic / Ollama / Gemini / OpenAI-compatible), formatted Markdown (tables, lists, code, links); the local renderer batches updates and reuses completed blocks. This is provider chat, not Raycast's agent/tool runtime.
 - **Hold-to-speak dictation** — Wispr Flow-style voice input; hold hotkey, speak, release to type (Whisper, Parakeet, or native macOS STT)
 - **Read aloud** — Speechify-style TTS for selected text (Edge TTS or ElevenLabs)
 - **Clipboard history** — full clipboard manager with Cmd+1–9 quick-paste shortcuts

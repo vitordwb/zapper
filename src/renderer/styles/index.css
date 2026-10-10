@@ -1986,6 +1986,36 @@ body.sc-detached-window .speak-close-button {
   user-select: text;
   cursor: text;
 }
+.ai-markdown p, .ai-markdown ul, .ai-markdown ol,
+.ai-markdown blockquote, .ai-markdown pre, .ai-markdown table {
+  margin: 0 0 0.75em;
+}
+.ai-markdown > :last-child { margin-bottom: 0; }
+.ai-markdown h1, .ai-markdown h2, .ai-markdown h3,
+.ai-markdown h4, .ai-markdown h5, .ai-markdown h6 {
+  font-weight: 650;
+  line-height: 1.3;
+  margin: 1em 0 0.4em;
+}
+.ai-markdown h1 { font-size: 1.4em; }
+.ai-markdown h2 { font-size: 1.2em; }
+.ai-markdown h3 { font-size: 1.08em; }
+.ai-markdown ul, .ai-markdown ol { padding-left: 1.4em; }
+.ai-markdown ul { list-style: disc; }
+.ai-markdown ol { list-style: decimal; }
+.ai-markdown li { padding-left: 0.15em; }
+.ai-markdown li > p { margin: 0; }
+.ai-markdown a { color: var(--accent); text-decoration: underline; cursor: pointer; }
+.ai-markdown blockquote { border-left: 2px solid var(--accent); padding-left: 0.8em; color: var(--text-secondary); }
+.ai-markdown code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
+.ai-markdown :not(pre) > code { background: var(--kbd-bg); border-radius: 4px; padding: 0.1em 0.3em; }
+.ai-markdown pre { background: var(--kbd-bg); border-radius: 8px; padding: 0.8em; overflow-x: auto; white-space: pre; }
+.ai-markdown pre code { font-size: 0.9em; }
+.ai-markdown table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+.ai-markdown th, .ai-markdown td { border: 1px solid var(--ui-segment-border); padding: 0.3em 0.6em; }
+.ai-markdown img { max-width: 100%; max-height: 350px; border-radius: 8px; }
+.ai-markdown hr { border-color: var(--ui-segment-border); margin: 1em 0; }
+.ai-markdown input[type='checkbox'] { margin-right: 0.4em; }
 
 
 .sc-ai-shimmer {
