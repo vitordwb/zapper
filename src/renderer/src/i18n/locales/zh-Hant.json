@@ -129,7 +129,7 @@
       },
       "visualStyle": {
         "title": "視覺風格",
-        "description": "使用預設風格，或啟用更接近 macOS Tahoe 風格的玻璃態介面。",
+        "description": "選擇次要檢視的樣式。搜尋與內嵌 AI 使用系統風格設計。",
         "default": "預設",
         "glassy": "玻璃態"
       },
@@ -141,7 +141,7 @@
       },
       "background": {
         "title": "啟動器背景圖",
-        "description": "在啟動器後面顯示一張低透明度、輕微模糊的背景圖，讓它更像氛圍提示而不是完整桌布。",
+        "description": "自訂支援的次要檢視背景。搜尋與內嵌 AI 保持清爽的系統風格介面。",
         "empty": "尚未選擇圖片，啟動器會繼續使用目前背景。",
         "choose": "選擇圖片",
         "change": "變更圖片",
@@ -150,7 +150,7 @@
         "summary": "模糊 {blur}% · 不透明度 {opacity}%",
         "blur": "模糊",
         "opacity": "不透明度",
-        "useEverywhere": "在擴充功能檢視和核心啟動器檢視中也使用這張圖片"
+        "useEverywhere": "在支援的次要檢視中使用"
       },
       "updates": {
         "title": "應用程式更新",
@@ -811,6 +811,35 @@
     }
   },
   "launcher": {
+    "searchLabel": "搜尋應用程式、命令和檔案，或向 AI 提問",
+    "resultsLabel": "搜尋結果",
+    "intent": {
+      "askAi": "向 AI 提問",
+      "execute": "執行 {title}",
+      "open": "開啟 {title}",
+      "web": "搜尋網頁",
+      "enter": "按 Enter 以{action}",
+      "updating": "正在更新結果…",
+      "selectionRemoved": "此結果已無法使用。請選擇其他結果。"
+    },
+    "inlineAi": {
+      "followUp": "繼續提問…",
+      "followUpLabel": "後續問題",
+      "stop": "停止產生",
+      "send": "傳送問題",
+      "retry": "重試",
+      "expand": "開啟完整對話",
+      "unavailable": "AI 無法使用。請在設定中設定服務供應商。",
+      "openSettings": "開啟 AI 設定",
+      "started": "正在產生回答。",
+      "completed": "回答已完成。",
+      "cancelled": "回答已取消。",
+      "failed": "無法完成回答。"
+    },
+    "quickLinkPrompt": {
+      "title": "填寫快速連結參數",
+      "submit": "開啟連結"
+    },
     "searchPlaceholder": "搜尋應用程式、命令，或向 AI 提問...",
     "browserSearch": {
       "openUrl": "開啟 {url}",
@@ -859,6 +888,7 @@
       "showMore": "顯示更多"
     },
     "status": {
+      "fileSearchFailed": "檔案搜尋暫時無法使用。其他結果仍可使用。",
       "discoveringApps": "正在探索應用程式...",
       "noMatchingResults": "沒有符合的結果",
       "results": "{count} 個結果"
@@ -939,6 +969,14 @@
       "results": "結果"
     },
     "calculator": {
+      "kinds": {
+        "math": "數學",
+        "unit": "單位",
+        "currency": "貨幣",
+        "crypto": "加密貨幣",
+        "time": "時間",
+        "date": "日期"
+      },
       "pressEnterToCopy": "按 Enter 複製",
       "clickToCopy": "點擊複製",
       "copy": "複製"

@@ -28,8 +28,6 @@ interface CursorPromptViewProps {
   submitCursorPrompt: () => void;
   closeCursorPrompt: () => void;
   acceptCursorPrompt: () => void;
-  /** Only used when variant='inline' */
-  alwaysMountedRunners?: React.ReactNode;
 }
 
 export default function CursorPromptView({
@@ -44,7 +42,6 @@ export default function CursorPromptView({
   submitCursorPrompt,
   closeCursorPrompt,
   acceptCursorPrompt,
-  alwaysMountedRunners,
 }: CursorPromptViewProps) {
   const isPortal = variant === 'portal';
 
@@ -126,10 +123,5 @@ export default function CursorPromptView({
     return promptContent;
   }
 
-  return (
-    <>
-      {alwaysMountedRunners}
-      {promptContent}
-    </>
-  );
+  return promptContent;
 }

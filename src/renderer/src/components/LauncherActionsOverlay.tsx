@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { LauncherAction } from '../utils/command-helpers';
 import { getShortcutDisplayParts } from '../utils/command-helpers';
-import { getLauncherFloatingPanelStyle } from './launcher-overlay-style';
+import { useI18n } from '../i18n';
+import { useLauncherMenuBounds } from './launcher-overlay-style';
 
 type LauncherActionsOverlayProps = {
   actions: LauncherAction[];
@@ -11,98 +12,100 @@ type LauncherActionsOverlayProps = {
   onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void;
   onClose: () => void;
   onActionClick: (action: LauncherAction) => void | Promise<void>;
-  isNativeLiquidGlass: boolean;
-  isGlassyTheme: boolean;
 };
 
-const LauncherActionsOverlay: React.FC<LauncherActionsOverlayProps> = ({
-  actions,
-  selectedIndex,
-  setSelectedIndex,
-  overlayRef,
-  onKeyDown,
-  onClose,
-  onActionClick,
-  isNativeLiquidGlass,
-  isGlassyTheme,
-}) => {
-  if (actions.length === 0) return null;
-
+export function LauncherActionMenuItems({ actions, selectedIndex, setSelectedIndex, onActionClick, idPrefix }: {
+  actions: LauncherAction[];
+  selectedIndex: number;
+  setSelectedIndex: React.Dispatch<React.SetStateAction<number>>;
+  onActionClick: (action: LauncherAction) => void | Promise<void>;
+  idPrefix: string;
+}) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const selected = actions[selectedIndex];
+    if (!selected || selected.enabled === false) return;
+    const row = Array.from(bodyRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])
+      .find((item) => item.id === `${idPrefix}-${encodeURIComponent(selected.id)}`);
+    row?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+  }, [actions, selectedIndex, idPrefix]);
   return (
-    <div
-      className="fixed inset-0 z-50"
-      onClick={onClose}
-      style={{ background: 'var(--bg-scrim)' }}
-    >
+    <div ref={bodyRef} className="min-h-0 overflow-y-auto p-1" style={{ overscrollBehavior: 'contain' }}>
+      {actions.map((action, idx) => (
+        <React.Fragment key={action.id}>
+          {action.separatorBefore && <div role="separator" className="mx-2 my-1 border-t" style={{ borderColor: 'var(--sc-color-separator)' }} />}
+          <div
+            id={`${idPrefix}-${encodeURIComponent(action.id)}`}
+            role="menuitem"
+            aria-disabled={action.enabled === false || undefined}
+            className="flex min-h-8 items-center gap-2 px-3 py-1.5 text-left"
+            style={{
+              borderRadius: 'var(--sc-radius-control)',
+              background: idx === selectedIndex ? 'var(--sc-color-selection-background)' : 'transparent',
+              color: action.enabled === false ? 'var(--sc-color-text-disabled)' : action.style === 'destructive' ? 'var(--sc-color-status-error)' : 'var(--sc-color-text-primary)',
+              opacity: action.enabled === false ? 'var(--sc-opacity-disabled)' : 1,
+              cursor: action.enabled === false ? 'default' : 'pointer',
+              font: 'var(--sc-typography-control)',
+            }}
+            onMouseMove={() => {
+              if (action.enabled !== false && idx !== selectedIndex) setSelectedIndex(idx);
+            }}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              if (action.enabled !== false) void onActionClick(action);
+            }}
+          >
+            {action.icon && <span className="shrink-0" aria-hidden="true">{action.icon}</span>}
+            <span className="min-w-0 flex-1 truncate">{action.title}</span>
+            {action.shortcut && (
+              <span className="flex shrink-0 items-center gap-0.5" aria-hidden="true">
+                {getShortcutDisplayParts(action.shortcut).map((key, keyIdx) => (
+                  <kbd key={`${action.id}-${key}-${keyIdx}`} className="inline-flex min-w-[22px] items-center justify-center px-1" style={{ minHeight: 22, borderRadius: 'var(--sc-radius-keycap)', background: 'var(--sc-color-surface-inset)', color: 'var(--sc-color-text-tertiary)', font: 'var(--sc-typography-shortcut)' }}>{key}</kbd>
+                ))}
+              </span>
+            )}
+          </div>
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+const LauncherActionsOverlay: React.FC<LauncherActionsOverlayProps> = ({
+  actions, selectedIndex, setSelectedIndex, overlayRef, onKeyDown, onClose, onActionClick,
+}) => {
+  const { t } = useI18n();
+  const bounds = useLauncherMenuBounds(overlayRef, null);
+  const previousFocus = useRef<Element | null>(null);
+  useEffect(() => {
+    const panel = overlayRef.current;
+    previousFocus.current = document.activeElement;
+    return () => {
+      if (panel?.contains(document.activeElement) && previousFocus.current instanceof HTMLElement && previousFocus.current.isConnected) {
+        previousFocus.current.focus();
+      }
+    };
+  }, [overlayRef]);
+
+  if (actions.length === 0) return null;
+  const active = actions[selectedIndex];
+  return (
+    <div className="fixed inset-0" style={{ zIndex: 'var(--sc-layer-modalScrim)', background: 'rgba(0,0,0,.12)' }} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <div
         ref={overlayRef}
-        className="absolute bottom-12 right-3 w-96 max-h-[65vh] rounded-xl overflow-hidden flex flex-col shadow-2xl outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0"
+        data-sc-overlay-panel="actions"
+        role="menu"
+        aria-label={t('common.actions')}
+        aria-activedescendant={active && active.enabled !== false ? `sc-actions-${encodeURIComponent(active.id)}` : undefined}
         tabIndex={0}
-        onKeyDown={onKeyDown}
-        style={getLauncherFloatingPanelStyle(isNativeLiquidGlass, isGlassyTheme)}
-        onFocus={(e) => {
-          (e.currentTarget as HTMLDivElement).style.outline = 'none';
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose(); return; }
+          onKeyDown(event);
         }}
-        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
+        style={{ ...bounds, zIndex: 'var(--sc-layer-modal)', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: 'var(--sc-radius-control)', background: 'var(--sc-color-surface-raised)', color: 'var(--sc-color-text-primary)', border: '1px solid var(--sc-color-surface-stroke)', boxShadow: 'var(--sc-shadow-menu)', outlineOffset: 2 }}
       >
-        <div className="flex-1 overflow-y-auto py-1">
-          {actions.map((action, idx) => (
-            <React.Fragment key={action.id}>
-              {action.separatorBefore && (
-                <div className="mx-2.5 my-1 border-t border-[var(--ui-divider)]" />
-              )}
-              <div
-                className={`mx-1 px-2.5 py-1.5 rounded-lg border border-transparent flex items-center gap-2.5 cursor-pointer transition-colors ${
-                  idx === selectedIndex
-                    ? action.style === 'destructive'
-                      ? 'bg-[var(--action-menu-selected-bg)] text-[var(--status-danger-faded)]'
-                      : 'bg-[var(--action-menu-selected-bg)] text-[var(--text-primary)]'
-                    : action.style === 'destructive'
-                      ? 'hover:bg-[var(--overlay-item-hover-bg)] text-[var(--status-danger-faded)]'
-                      : 'hover:bg-[var(--overlay-item-hover-bg)] text-[var(--text-secondary)]'
-                }`}
-                style={
-                  idx === selectedIndex
-                    ? {
-                        background: 'var(--action-menu-selected-bg)',
-                        borderColor: 'var(--action-menu-selected-border)',
-                        boxShadow: 'var(--action-menu-selected-shadow)',
-                      }
-                    : undefined
-                }
-                onClick={async () => {
-                  await Promise.resolve(onActionClick(action));
-                }}
-                onMouseMove={() => setSelectedIndex(idx)}
-              >
-                {action.icon && (
-                  <span
-                    className={`shrink-0 ${
-                      action.style === 'destructive'
-                        ? 'text-[var(--status-danger-faded)]'
-                        : 'text-[var(--text-muted)]'
-                    }`}
-                  >
-                    {action.icon}
-                  </span>
-                )}
-                <span className="flex-1 text-sm truncate">{action.title}</span>
-                {action.shortcut && (
-                  <span className="flex items-center gap-0.5">
-                    {getShortcutDisplayParts(action.shortcut).map((key, keyIdx) => (
-                      <kbd
-                        key={`${action.id}-${key}-${keyIdx}`}
-                        className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded bg-[var(--kbd-bg)] text-[11px] font-medium text-[var(--text-muted)]"
-                      >
-                        {key}
-                      </kbd>
-                    ))}
-                  </span>
-                )}
-              </div>
-            </React.Fragment>
-          ))}
-        </div>
+        <LauncherActionMenuItems actions={actions} selectedIndex={selectedIndex} setSelectedIndex={setSelectedIndex} onActionClick={onActionClick} idPrefix="sc-actions" />
       </div>
     </div>
   );

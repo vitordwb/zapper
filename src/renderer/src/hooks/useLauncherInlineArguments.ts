@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import type { CommandInfo, QuickLinkDynamicField } from '../../types/electron';
-import { useInlineArgumentAnchor } from './useInlineArgumentAnchor';
 import {
   clearCommandArguments,
   getCmdArgsKey,
@@ -20,14 +19,11 @@ import { renderCommandIcon } from '../utils/command-helpers';
 export type UseLauncherInlineArgumentsParams = {
   selectedCommand: CommandInfo | null;
   selectedCommandId: string | undefined;
-  searchQuery: string;
   isLauncherModeActive: boolean;
   inputRef: React.RefObject<HTMLInputElement>;
 };
 
 export type UseLauncherInlineArgumentsResult = {
-  inlineArgumentLaneRef: React.RefObject<HTMLDivElement>;
-  inlineArgumentClusterRef: React.RefObject<HTMLDivElement>;
   inlineArgumentInputRefs: React.MutableRefObject<Array<HTMLInputElement | HTMLSelectElement | null>>;
   inlineQuickLinkInputRefs: React.MutableRefObject<Array<HTMLInputElement | null>>;
 
@@ -45,7 +41,6 @@ export type UseLauncherInlineArgumentsResult = {
   isShowingInlineArgumentInputs: boolean;
   shouldHideAskAi: boolean;
   selectedInlineArgumentLeadingIcon: React.ReactNode;
-  inlineArgumentStartPx: number | null;
 
   inlineQuickLinkDynamicFieldsById: Record<string, QuickLinkDynamicField[]>;
   inlineQuickLinkDynamicValuesById: Record<string, Record<string, string>>;
@@ -75,7 +70,6 @@ export type UseLauncherInlineArgumentsResult = {
 export function useLauncherInlineArguments({
   selectedCommand,
   selectedCommandId,
-  searchQuery,
   isLauncherModeActive,
   inputRef,
 }: UseLauncherInlineArgumentsParams): UseLauncherInlineArgumentsResult {
@@ -89,8 +83,6 @@ export function useLauncherInlineArguments({
     Record<string, Record<string, string>>
   >({});
 
-  const inlineArgumentLaneRef = useRef<HTMLDivElement>(null);
-  const inlineArgumentClusterRef = useRef<HTMLDivElement>(null);
   const inlineArgumentInputRefs = useRef<Array<HTMLInputElement | HTMLSelectElement | null>>([]);
   const inlineQuickLinkInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const pendingFocusInlineArgRef = useRef(false);
@@ -137,14 +129,6 @@ export function useLauncherInlineArguments({
     if (!isShowingInlineArgumentInputs || !selectedCommand) return null;
     return renderCommandIcon(selectedCommand);
   }, [isShowingInlineArgumentInputs, selectedCommand]);
-  const inlineArgumentStartPx = useInlineArgumentAnchor({
-    enabled: isShowingInlineArgumentInputs,
-    query: searchQuery,
-    searchInputRef: inputRef,
-    laneRef: inlineArgumentLaneRef,
-    inlineRef: inlineArgumentClusterRef,
-    minStartRatio: 0.3,
-  });
 
   const requestPendingInlineArgumentFocus = useCallback(() => {
     pendingFocusInlineArgRef.current = true;
@@ -251,7 +235,10 @@ export function useLauncherInlineArguments({
   useEffect(() => {
     if (!isLauncherModeActive) return;
     const timer = window.setTimeout(() => {
-      if (document.activeElement !== inputRef.current) {
+      // Never steal focus from arguments, menus, dialogs or an external responder.
+      if (document.hasFocus() &&
+          (document.activeElement === document.body || document.activeElement === document.documentElement) &&
+          !document.querySelector('[role=dialog], [role=menu]')) {
         inputRef.current?.focus();
       }
     }, 0);
@@ -371,8 +358,6 @@ export function useLauncherInlineArguments({
   );
 
   return {
-    inlineArgumentLaneRef,
-    inlineArgumentClusterRef,
     inlineArgumentInputRefs,
     inlineQuickLinkInputRefs,
 
@@ -390,7 +375,6 @@ export function useLauncherInlineArguments({
     isShowingInlineArgumentInputs,
     shouldHideAskAi,
     selectedInlineArgumentLeadingIcon,
-    inlineArgumentStartPx,
 
     inlineQuickLinkDynamicFieldsById,
     inlineQuickLinkDynamicValuesById,

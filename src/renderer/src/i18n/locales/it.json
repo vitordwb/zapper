@@ -129,7 +129,7 @@
       },
       "visualStyle": {
         "title": "Stile visivo",
-        "description": "Usa l'aspetto predefinito o abilita uno stile vetroso ispirato a macOS Tahoe.",
+        "description": "Scegli lo stile delle viste secondarie. La ricerca e l’AI integrata usano un design ispirato al sistema.",
         "default": "Predefinito",
         "glassy": "Vetroso"
       },
@@ -141,7 +141,7 @@
       },
       "background": {
         "title": "Immagine di sfondo del launcher",
-        "description": "Mostra un'immagine leggermente sfocata e poco opaca dietro il launcher, come un accenno e non uno sfondo completo.",
+        "description": "Personalizza gli sfondi nelle viste secondarie supportate. La ricerca e l’AI integrata mantengono una superficie essenziale ispirata al sistema.",
         "empty": "Nessuna immagine selezionata. Il launcher manterrà lo sfondo attuale.",
         "choose": "Scegli immagine",
         "change": "Cambia immagine",
@@ -150,7 +150,7 @@
         "summary": "Sfocatura {blur}% · Opacità {opacity}%",
         "blur": "Sfocatura",
         "opacity": "Opacità",
-        "useEverywhere": "Usa questa immagine anche nelle estensioni e nelle viste principali del launcher"
+        "useEverywhere": "Usa nelle viste secondarie supportate"
       },
       "updates": {
         "title": "Aggiornamenti app",
@@ -811,6 +811,35 @@
     }
   },
   "launcher": {
+    "searchLabel": "Cerca app, comandi o file, oppure chiedi all’AI",
+    "resultsLabel": "Risultati di ricerca",
+    "intent": {
+      "askAi": "Chiedi all’AI",
+      "execute": "Esegui {title}",
+      "open": "Apri {title}",
+      "web": "Cerca sul web",
+      "enter": "Premi Invio per {action}",
+      "updating": "Aggiornamento dei risultati…",
+      "selectionRemoved": "Questo risultato non è più disponibile. Selezionane un altro."
+    },
+    "inlineAi": {
+      "followUp": "Fai un’altra domanda…",
+      "followUpLabel": "Domanda successiva",
+      "stop": "Interrompi generazione",
+      "send": "Invia domanda",
+      "retry": "Riprova",
+      "expand": "Apri la conversazione completa",
+      "unavailable": "L’AI non è disponibile. Configura un provider nelle Impostazioni.",
+      "openSettings": "Apri impostazioni AI",
+      "started": "Generazione della risposta.",
+      "completed": "Risposta completata.",
+      "cancelled": "Risposta annullata.",
+      "failed": "Impossibile completare la risposta."
+    },
+    "quickLinkPrompt": {
+      "title": "Inserisci gli argomenti del collegamento rapido",
+      "submit": "Apri collegamento"
+    },
     "searchPlaceholder": "Cerca app, comandi o chiedi all'AI...",
     "browserSearch": {
       "openUrl": "Apri {url}",
@@ -859,6 +888,7 @@
       "showMore": "Mostra di più"
     },
     "status": {
+      "fileSearchFailed": "La ricerca dei file non è disponibile. Gli altri risultati restano disponibili.",
       "discoveringApps": "Ricerca delle app...",
       "noMatchingResults": "Nessun risultato corrispondente",
       "results": "{count} risultati"
@@ -939,6 +969,14 @@
       "results": "Risultati"
     },
     "calculator": {
+      "kinds": {
+        "math": "Matematica",
+        "unit": "Unità",
+        "currency": "Valuta",
+        "crypto": "Criptovaluta",
+        "time": "Ora",
+        "date": "Data"
+      },
       "pressEnterToCopy": "Premi Invio per copiare",
       "clickToCopy": "Clicca per copiare",
       "copy": "Copia"

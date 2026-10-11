@@ -23,7 +23,6 @@ export type BookmarkNicknamePromptState = {
 };
 
 type BrowserResultsViewProps = {
-  alwaysMountedRunners: React.ReactNode;
 
   backgroundImageUrl: string;
   showBackground: boolean;
@@ -71,7 +70,6 @@ type BrowserResultsViewProps = {
 };
 
 const BrowserResultsView: React.FC<BrowserResultsViewProps> = ({
-  alwaysMountedRunners,
   backgroundImageUrl,
   showBackground,
   backgroundBlurPercent,
@@ -152,7 +150,6 @@ const BrowserResultsView: React.FC<BrowserResultsViewProps> = ({
   return (
     <>
       <LauncherViewShell
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={backgroundImageUrl}
         showBackground={showBackground}
         backgroundBlurPercent={backgroundBlurPercent}

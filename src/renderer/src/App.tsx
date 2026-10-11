@@ -6,7 +6,6 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
-import zapperLogo from '../../../zapper.png';
 import type {
   CommandInfo,
   ExtensionBundle,
@@ -44,6 +43,8 @@ import { useLauncherLocalSystemCommands } from './hooks/useLauncherLocalSystemCo
 import { useLauncherCommandExecution } from './hooks/useLauncherCommandExecution';
 import { useLauncherWindowShownHandler } from './hooks/useLauncherWindowShownHandler';
 import { useLauncherKeyboardControls } from './hooks/useLauncherKeyboardControls';
+import { useLauncherSurface } from './hooks/useLauncherSurface';
+import { getLauncherCommandStableKey, LAUNCHER_CALCULATOR_STABLE_KEY, resolveLauncherIntent } from './utils/launcher-intent';
 import { AI_CHAT_STORAGE_KEY, LAST_EXT_KEY, LAST_LAUNCHER_QUERY_KEY, MAX_LAUNCHER_QUERY_HISTORY, MAX_RECENT_COMMANDS } from './utils/constants';
 import { applyBaseColor } from './utils/base-color';
 import { resetAccessToken } from './raycast-api';
@@ -70,6 +71,7 @@ import ScriptCommandSetupView from './views/ScriptCommandSetupView';
 import ScriptCommandOutputView from './views/ScriptCommandOutputView';
 import ExtensionPreferenceSetupView from './views/ExtensionPreferenceSetupView';
 import AiChatView from './views/AiChatView';
+import LauncherInlineAiView from './views/LauncherInlineAiView';
 import CursorPromptView from './views/CursorPromptView';
 import AppUninstallView from './views/AppUninstallView';
 import BrowserResultsView from './views/BrowserResultsView';
@@ -77,6 +79,7 @@ import WebSearchView from './views/WebSearchView';
 import LauncherMainView from './views/LauncherMainView';
 import HiddenExtensionRunners from './components/HiddenExtensionRunners';
 import DetachedOverlayRunners from './components/DetachedOverlayRunners';
+import { getLauncherCommandOptionId, LAUNCHER_CALCULATOR_OPTION_ID } from './components/LauncherCommandList';
 import LauncherViewShell from './components/LauncherViewShell';
 import type { LauncherContextMenuState } from './components/LauncherContextMenuOverlay';
 import type { QuickLinkDynamicPromptState } from './components/QuickLinkDynamicPromptOverlay';
@@ -141,6 +144,7 @@ const DEFAULT_POP_TO_ROOT_TIMEOUT_SECONDS = 90;
 // Prevents duplicate base64 strings accumulating across repeated fetchCommands() IPC calls.
 const _commandIconCache = new Map<string, string>();
 
+const EMPTY_LAUNCHER_FILE_RESULTS: IndexedFileSearchResult[] = [];
 const App: React.FC = () => {
   const { t } = useI18n();
   const [commands, setCommands] = useState<CommandInfo[]>([]);
@@ -170,7 +174,11 @@ const App: React.FC = () => {
   const [rootSearchAutocompleteEnabled, setRootSearchAutocompleteEnabled] = useState(true);
   const [rootSearchRanking, setRootSearchRanking] = useState<RootSearchRankingState>({});
   const rootSearchRankingRef = useRef<RootSearchRankingState>({});
-  const [launcherFileResults, setLauncherFileResults] = useState<IndexedFileSearchResult[]>([]);
+  const [launcherFileSearch, setLauncherFileSearch] = useState<{
+    query: string;
+    status: 'idle' | 'pending' | 'ready' | 'error';
+    items: IndexedFileSearchResult[];
+  }>({ query: '', status: 'idle', items: [] });
   const [disableFileSearchResults, setDisableFileSearchResults] = useState(false);
   const [launcherViewMode, setLauncherViewMode] = useState<'expanded' | 'compact'>('expanded');
   const [isCompactCollapsed, setIsCompactCollapsed] = useState(true);
@@ -181,7 +189,8 @@ const App: React.FC = () => {
   const [launcherFooterStatus, setLauncherFooterStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const launcherFooterStatusTimerRef = useRef<number | null>(null);
   const [fileSearchInitialDetailPath, setFileSearchInitialDetailPath] = useState<string | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectionIndex, setSelectedIndex] = useState(0);
+  const [explicitLauncherSelection, setExplicitLauncherSelection] = useState<{ query: string; stableKey: string } | null>(null);
   const [navigationStyle, setNavigationStyle] = useState<'vim' | 'macos'>('vim');
   const [isLoading, setIsLoading] = useState(false);
   const homeDir = String((window.electron as any).homeDir || '');
@@ -316,26 +325,23 @@ const App: React.FC = () => {
     );
   }, [setBackgroundNoViewRuns]);
 
+  const pendingSearchFocusRef = useRef(false);
+  const launcherSurfaceRevisionRef = useRef(0);
+  const pendingSearchFocusRevisionRef = useRef(0);
   const onExitAiMode = useCallback(() => {
-    if (launcherViewMode === 'compact') {
-      setSearchQuery('');
-      setIsCompactCollapsed(true);
-      window.electron.resizeLauncherWindow(false);
-    }
-    setTimeout(() => inputRef.current?.focus(), 50);
+    pendingSearchFocusRef.current = true;
+    pendingSearchFocusRevisionRef.current = launcherSurfaceRevisionRef.current;
+    if (launcherViewMode === 'compact') setIsCompactCollapsed(true);
   }, [launcherViewMode]);
 
   const {
     messages: aiMessages, aiStreaming, aiAvailable, aiQuery, setAiQuery,
-    aiResponseRef, aiInputRef, setAiAvailable,
+    aiResponseRef, aiInputRef, setAiAvailable, aiPresentation, expandAiChat, retryLastMessage,
     conversations: aiConversations, activeConversationId: aiActiveConversationId,
     startAiChat, sendMessage: aiSendMessage, stopStreaming: aiStopStreaming,
     newChat: aiNewChat, selectConversation: aiSelectConversation,
     deleteConversation: aiDeleteConversation, exitAiMode,
-  } = useAiChat({
-    setAiMode,
-    onExitAiMode,
-  });
+  } = useAiChat({ setAiMode, onExitAiMode });
 
   const {
     cursorPromptText, setCursorPromptText,
@@ -374,7 +380,6 @@ const App: React.FC = () => {
   const expandLauncherForDirectLaunch = useCallback(() => {
     directLaunchExpansionGuardUntilRef.current = Date.now() + DIRECT_LAUNCH_EXPANSION_GUARD_MS;
     setIsCompactCollapsed(false);
-    void window.electron.resizeLauncherWindow(true);
 
     // Extension/script direct launches are dispatched with executeJavaScript(),
     // which can beat the async window-shown IPC reset. Retry briefly so the
@@ -383,7 +388,6 @@ const App: React.FC = () => {
       window.setTimeout(() => {
         if (Date.now() > directLaunchExpansionGuardUntilRef.current) return;
         setIsCompactCollapsed(false);
-        void window.electron.resizeLauncherWindow(true);
       }, delayMs);
     });
   }, []);
@@ -709,12 +713,16 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const cleanupWindowHidden = window.electron.onWindowHidden(() => {
+      pendingSearchFocusRef.current = false;
+      exitAiMode({ restoreFocus: false });
       lastWindowHiddenAtRef.current = Date.now();
       setSearchQuery('');
+      setIsCompactCollapsed(true);
       setSelectedIndex(0);
+      setExplicitLauncherSelection(null);
     });
     return cleanupWindowHidden;
-  }, []);
+  }, [exitAiMode]);
 
   useEffect(() => {
     const cleanup = window.electron.onCommandsUpdated?.(() => {
@@ -1266,11 +1274,28 @@ const App: React.FC = () => {
   isLauncherModeActiveRef.current = isLauncherModeActive;
   const shouldKeepLauncherSearchResults =
     isLauncherModeActive || showActions || Boolean(contextMenu);
+  const surfaceKind = aiMode && aiPresentation === 'inline' ? 'answer'
+    : (isLauncherModeActive || showActions || contextMenu || quickLinkDynamicPrompt) && !showAppUninstall
+      ? 'search' : 'legacy';
+  const searchSurfaceRef = useRef<HTMLElement>(null);
+  const resultsSurfaceRef = useRef<HTMLElement>(null);
+  const answerSurfaceRef = useRef<HTMLElement>(null);
+  const overlaySurfaceRef = useRef<HTMLDivElement>(null);
+  const resultsVisible = Boolean(searchQuery.trim()) || !isCompactCollapsed;
+  const { snapshot: launcherSurface } = useLauncherSurface(surfaceKind, {
+    search: searchSurfaceRef, results: resultsSurfaceRef, answer: answerSurfaceRef, overlay: overlaySurfaceRef,
+  }, resultsVisible);
+  launcherSurfaceRevisionRef.current = launcherSurface.revision;
+  useEffect(() => {
+    if (!pendingSearchFocusRef.current || aiMode || launcherSurface.kind !== 'search' ||
+      launcherSurface.revision <= pendingSearchFocusRevisionRef.current) return;
+    pendingSearchFocusRef.current = false;
+    if (document.hasFocus()) inputRef.current?.focus();
+  }, [aiMode, launcherSurface.kind, launcherSurface.revision]);
 
   useEffect(() => {
     if (launcherViewMode !== 'compact' || isLauncherModeActive) return;
     setIsCompactCollapsed(false);
-    void window.electron.resizeLauncherWindow(true);
   }, [isLauncherModeActive, launcherViewMode]);
 
   useEffect(() => {
@@ -1282,9 +1307,10 @@ const App: React.FC = () => {
     const minimumQueryLength = pathLikeQuery ? 1 : MIN_LAUNCHER_FILE_QUERY_LENGTH;
 
     if (disableFileSearchResults || !shouldKeepLauncherSearchResults || trimmed.length < minimumQueryLength) {
-      setLauncherFileResults([]);
+      setLauncherFileSearch({ query: searchQuery, status: 'idle', items: [] });
       return;
     }
+    setLauncherFileSearch({ query: searchQuery, status: 'pending', items: [] });
 
     const timer = window.setTimeout(() => {
       void (async () => {
@@ -1332,7 +1358,7 @@ const App: React.FC = () => {
           }
 
           if (fileSearchRequestSeqRef.current !== requestSeq) return;
-          setLauncherFileResults(results);
+          setLauncherFileSearch({ query: searchQuery, status: 'ready', items: results });
 
           const iconTargets = results.slice(0, MAX_LAUNCHER_FILE_RESULT_ICONS);
           const iconEntries = await Promise.all(
@@ -1356,7 +1382,7 @@ const App: React.FC = () => {
         } catch (error) {
           console.error('Failed to search indexed files for launcher:', error);
           if (fileSearchRequestSeqRef.current === requestSeq) {
-            setLauncherFileResults([]);
+            setLauncherFileSearch({ query: searchQuery, status: 'error', items: [] });
           }
         }
       })();
@@ -1364,6 +1390,7 @@ const App: React.FC = () => {
 
     return () => {
       window.clearTimeout(timer);
+      if (fileSearchRequestSeqRef.current === requestSeq) fileSearchRequestSeqRef.current += 1;
     };
   }, [searchQuery, shouldKeepLauncherSearchResults, homeDir, disableFileSearchResults]);
 
@@ -1447,6 +1474,8 @@ const App: React.FC = () => {
     };
   }, [pinnedFiles, launcherFileIcons]);
 
+  const launcherFileResults = launcherFileSearch.query === searchQuery ? launcherFileSearch.items : EMPTY_LAUNCHER_FILE_RESULTS;
+  const launcherFileStatus = launcherFileSearch.query === searchQuery ? launcherFileSearch.status : 'pending';
   useEffect(() => {
     const pending: Array<[string, boolean]> = [];
     for (const result of launcherFileResults) {
@@ -1552,8 +1581,7 @@ const App: React.FC = () => {
     calcOffset,
     displayCommands,
     launcherCommandSections,
-    selectedCommand,
-    selectedFileResultPath,
+    rootRankedCandidates,
     rootSearchAutoComplete,
   } = useLauncherCommandModel({
     commands,
@@ -1579,18 +1607,71 @@ const App: React.FC = () => {
     webSearchDefaultBangKey,
     webSearchBangUsage,
     rootWebSearchSuggestions,
-    selectedIndex,
+    selectedIndex: selectionIndex,
     defaultBrowserIconDataUrl,
     browserAppIconDataUrls,
     t,
   });
 
+  const activeSelection = explicitLauncherSelection?.query === searchQuery ? explicitLauncherSelection : null;
+  const selectedCommandIndex = activeSelection && activeSelection.stableKey !== LAUNCHER_CALCULATOR_STABLE_KEY
+    ? displayCommands.findIndex((command) => getLauncherCommandStableKey(command) === activeSelection.stableKey)
+    : -1;
+  const selectionRemoved = Boolean(activeSelection && selectedCommandIndex < 0 &&
+    !(activeSelection.stableKey === LAUNCHER_CALCULATOR_STABLE_KEY && calcOffset));
+  const launcherIntent = resolveLauncherIntent({
+    rawQuery: searchQuery,
+    modelQuery: deferredSearchQuery,
+    displayCommands,
+    rootRankedCandidates,
+    calculatorAvailable: Boolean(calcOffset),
+    explicitSelection: activeSelection,
+    selectionRemoved,
+    fileStatus: { query: searchQuery, status: launcherFileStatus },
+    aiAvailable: aiAvailable && !aiMode,
+    bangActive: rootBangState.mode !== 'none',
+    inlineArgumentsActive: Boolean(quickLinkDynamicPrompt),
+  });
+  const selectedIndex = activeSelection
+    ? activeSelection.stableKey === LAUNCHER_CALCULATOR_STABLE_KEY ? 0 :
+      selectedCommandIndex < 0 ? -1 : selectedCommandIndex + calcOffset
+    : launcherIntent.kind === 'ai' || launcherIntent.kind === 'pending' ? -1 : 0;
+  const selectedCommand = selectedIndex >= calcOffset ? displayCommands[selectedIndex - calcOffset] || null : null;
+  const selectedFileResultPath = selectedCommand ? getFileResultPathFromCommand(selectedCommand) : null;
+
+  const selectLauncherResult = useCallback((index: number) => {
+    const stableKey = index === 0 && calcOffset ? LAUNCHER_CALCULATOR_STABLE_KEY
+      : displayCommands[index - calcOffset] ? getLauncherCommandStableKey(displayCommands[index - calcOffset]) : null;
+    if (!stableKey) return;
+    setExplicitLauncherSelection({ query: searchQuery, stableKey });
+    setSelectedIndex(index);
+  }, [calcOffset, displayCommands, searchQuery]);
+  const returnToAiDefault = useCallback(() => {
+    setExplicitLauncherSelection(null);
+    setSelectedIndex(0);
+  }, []);
+  const defaultLauncherIntent = activeSelection ? resolveLauncherIntent({
+    rawQuery: searchQuery, modelQuery: deferredSearchQuery, displayCommands, rootRankedCandidates,
+    calculatorAvailable: Boolean(calcOffset), explicitSelection: null, selectionRemoved: false,
+    fileStatus: { query: searchQuery, status: launcherFileStatus }, aiAvailable: aiAvailable && !aiMode,
+    bangActive: rootBangState.mode !== 'none', inlineArgumentsActive: false,
+  }) : launcherIntent;
+  const launcherIntentLabel = launcherIntent.kind === 'ai' ? t('launcher.intent.askAi')
+    : launcherIntent.kind === 'pending' ? t(launcherIntent.reason === 'selection-removed'
+      ? 'launcher.intent.selectionRemoved' : 'launcher.intent.updating')
+    : launcherIntent.kind === 'command' ? t(
+      selectedCommand?.category === 'app' || Boolean(selectedFileResultPath) || (selectedCommand ? isBrowserSearchCommand(selectedCommand) : false)
+        ? 'launcher.intent.open' : 'launcher.intent.execute',
+      { title: selectedCommand ? getCommandDisplayTitle(selectedCommand, t) : '' })
+    : launcherIntent.kind === 'calculator' ? t('calculator.copy') : '';
+  const launcherActiveOptionId = launcherIntent.kind === 'command' && selectedCommand
+    ? getLauncherCommandOptionId(selectedCommand.id)
+    : launcherIntent.kind === 'calculator' ? LAUNCHER_CALCULATOR_OPTION_ID : undefined;
+
   const browserSearchAutoComplete = deferredSearchQuery === searchQuery ? rootSearchAutoComplete : null;
   const launcherInputValue = searchQuery;
 
   const {
-    inlineArgumentLaneRef,
-    inlineArgumentClusterRef,
     inlineArgumentInputRefs,
     inlineQuickLinkInputRefs,
 
@@ -1608,7 +1689,6 @@ const App: React.FC = () => {
     isShowingInlineArgumentInputs,
     shouldHideAskAi,
     selectedInlineArgumentLeadingIcon,
-    inlineArgumentStartPx,
 
     inlineQuickLinkDynamicFieldsById,
     inlineQuickLinkDynamicValuesById,
@@ -1623,7 +1703,6 @@ const App: React.FC = () => {
   } = useLauncherInlineArguments({
     selectedCommand,
     selectedCommandId: selectedCommand?.id,
-    searchQuery,
     isLauncherModeActive,
     inputRef,
   });
@@ -1642,9 +1721,9 @@ const App: React.FC = () => {
       const elementRect = selectedElement.getBoundingClientRect();
 
       if (elementRect.top < containerRect.top) {
-        selectedElement.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        selectedElement.scrollIntoView({ block: 'start', behavior: 'instant' });
       } else if (elementRect.bottom > containerRect.bottom) {
-        selectedElement.scrollIntoView({ block: 'end', behavior: 'smooth' });
+        selectedElement.scrollIntoView({ block: 'end', behavior: 'instant' });
       }
     }
   }, [selectedIndex]);
@@ -1655,12 +1734,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     setSelectedIndex(0);
+    setExplicitLauncherSelection(null);
   }, [searchQuery]);
-
-  useEffect(() => {
-    const max = Math.max(0, displayCommands.length + calcOffset - 1);
-    setSelectedIndex((prev) => (prev > max ? max : prev));
-  }, [displayCommands.length, calcOffset]);
 
   useEffect(() => {
     selectedCommandRef.current = selectedCommand;
@@ -1929,6 +2004,9 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!quickLinkDynamicPrompt) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.repeat || event.isComposing || event.keyCode === 229) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('button, [role="button"], select, textarea')) return;
       const plainEnter =
         (event.key === 'Enter' || event.code === 'Enter' || event.code === 'NumpadEnter') &&
         !event.metaKey &&
@@ -2134,7 +2212,7 @@ const App: React.FC = () => {
         command.category === 'extension' &&
         (command.commandArgumentDefinitions || []).some((definition) => Boolean(definition?.name));
       if (!isAlreadySelected && hasInlineExtensionArguments) {
-        setSelectedIndex(absoluteIndex);
+        selectLauncherResult(absoluteIndex);
         return;
       }
 
@@ -2146,7 +2224,7 @@ const App: React.FC = () => {
         const hasInlineQuickLinkArguments =
           quickLinkFields.length > 0 && quickLinkFields.length <= MAX_INLINE_QUICK_LINK_ARGUMENTS;
         if (hasInlineQuickLinkArguments) {
-          setSelectedIndex(absoluteIndex);
+          selectLauncherResult(absoluteIndex);
           return;
         }
       }
@@ -2338,12 +2416,6 @@ const App: React.FC = () => {
     />
   );
 
-  const alwaysMountedRunners = (
-    <>
-      {hiddenExtensionRunners}
-      {detachedOverlayRunners}
-    </>
-  );
   const launcherBackgroundImageUrl = toFileUrl(launcherBackgroundImagePath);
   const shouldUseBackgroundEverywhere = Boolean(launcherBackgroundImageUrl) && launcherBackgroundImageEverywhere;
   const isGlassyTheme =
@@ -2375,6 +2447,11 @@ const App: React.FC = () => {
     calcOffset,
     calcResult,
     searchQuery,
+    launcherIntent,
+    onSelectResult: selectLauncherResult,
+    onReturnToAiDefault: returnToAiDefault,
+    canReturnToAiDefault: defaultLauncherIntent.kind === 'ai',
+    onQueryEdited: () => setExplicitLauncherSelection(null),
     browserSearchAutoComplete,
     launcherInputValue,
     aiAvailable,
@@ -2388,7 +2465,6 @@ const App: React.FC = () => {
     quickLinkDynamicPrompt,
     bookmarkNicknamePrompt,
     showAppUninstall,
-    launcherViewMode,
     isCompactCollapsed,
     setSearchQuery,
     setSelectedIndex,
@@ -2415,12 +2491,12 @@ const App: React.FC = () => {
     updateInlineQuickLinkDynamicValue,
   });
 
+  const renderActiveView = () => {
   // ─── Script Command Setup ───────────────────────────────────────
   if (scriptCommandSetup) {
     return (
       <ScriptCommandSetupView
         setup={scriptCommandSetup}
-        alwaysMountedRunners={alwaysMountedRunners}
         onBack={() => {
           setScriptCommandSetup(null);
           setSearchQuery('');
@@ -2440,7 +2516,6 @@ const App: React.FC = () => {
     return (
       <ScriptCommandOutputView
         output={scriptCommandOutput}
-        alwaysMountedRunners={alwaysMountedRunners}
         onBack={() => {
           setScriptCommandOutput(null);
           setSearchQuery('');
@@ -2455,7 +2530,6 @@ const App: React.FC = () => {
     return (
       <ExtensionPreferenceSetupView
         setup={extensionPreferenceSetup}
-        alwaysMountedRunners={alwaysMountedRunners}
         onBack={() => {
           setExtensionPreferenceSetup(null);
           setScriptCommandSetup(null);
@@ -2502,7 +2576,6 @@ const App: React.FC = () => {
   if (extensionView) {
     return (
       <LauncherViewShell
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={launcherBackgroundImageUrl}
         showBackground={shouldUseBackgroundEverywhere}
         backgroundBlurPercent={launcherBackgroundImageBlurPercent}
@@ -2543,7 +2616,6 @@ const App: React.FC = () => {
   if (showClipboardManager) {
     return (
       <LauncherViewShell
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={launcherBackgroundImageUrl}
         showBackground={shouldUseBackgroundEverywhere}
         backgroundBlurPercent={launcherBackgroundImageBlurPercent}
@@ -2572,8 +2644,6 @@ const App: React.FC = () => {
   // ─── Camera mode ──────────────────────────────────────────────────
   if (showCamera) {
     return (
-      <>
-        {alwaysMountedRunners}
         <div className="w-full h-full">
           <div className="overflow-hidden h-full flex flex-col">
             <CameraExtension
@@ -2586,7 +2656,6 @@ const App: React.FC = () => {
             />
           </div>
         </div>
-      </>
     );
   }
 
@@ -2594,7 +2663,6 @@ const App: React.FC = () => {
   if (showSchedule) {
     return (
       <LauncherViewShell
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={launcherBackgroundImageUrl}
         showBackground={shouldUseBackgroundEverywhere}
         backgroundBlurPercent={launcherBackgroundImageBlurPercent}
@@ -2627,7 +2695,6 @@ const App: React.FC = () => {
         submitCursorPrompt={submitCursorPrompt}
         closeCursorPrompt={closeCursorPrompt}
         acceptCursorPrompt={acceptCursorPrompt}
-        alwaysMountedRunners={alwaysMountedRunners}
       />
     );
   }
@@ -2636,7 +2703,6 @@ const App: React.FC = () => {
   if (webSearchQuery !== null) {
     return (
       <WebSearchView
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={launcherBackgroundImageUrl}
         showBackground={shouldUseBackgroundEverywhere}
         backgroundBlurPercent={launcherBackgroundImageBlurPercent}
@@ -2680,7 +2746,6 @@ const App: React.FC = () => {
   if (browserResultsViewQuery !== null) {
     return (
       <BrowserResultsView
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={launcherBackgroundImageUrl}
         showBackground={shouldUseBackgroundEverywhere}
         backgroundBlurPercent={launcherBackgroundImageBlurPercent}
@@ -2726,7 +2791,6 @@ const App: React.FC = () => {
   if (showNotesSearch) {
     return (
       <LauncherViewShell
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={launcherBackgroundImageUrl}
         showBackground={shouldUseBackgroundEverywhere}
         backgroundBlurPercent={launcherBackgroundImageBlurPercent}
@@ -2748,7 +2812,6 @@ const App: React.FC = () => {
   if (showCanvasSearch) {
     return (
       <LauncherViewShell
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={launcherBackgroundImageUrl}
         showBackground={shouldUseBackgroundEverywhere}
         backgroundBlurPercent={launcherBackgroundImageBlurPercent}
@@ -2770,7 +2833,6 @@ const App: React.FC = () => {
   if (showSnippetManager) {
     return (
       <LauncherViewShell
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={launcherBackgroundImageUrl}
         showBackground={shouldUseBackgroundEverywhere}
         backgroundBlurPercent={launcherBackgroundImageBlurPercent}
@@ -2793,7 +2855,6 @@ const App: React.FC = () => {
   if (showQuickLinkManager) {
     return (
       <LauncherViewShell
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={launcherBackgroundImageUrl}
         showBackground={shouldUseBackgroundEverywhere}
         backgroundBlurPercent={launcherBackgroundImageBlurPercent}
@@ -2821,7 +2882,6 @@ const App: React.FC = () => {
   if (showFileSearch) {
     return (
       <LauncherViewShell
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={launcherBackgroundImageUrl}
         showBackground={shouldUseBackgroundEverywhere}
         backgroundBlurPercent={launcherBackgroundImageBlurPercent}
@@ -2847,7 +2907,6 @@ const App: React.FC = () => {
   if (showMenuItemSearch) {
     return (
       <LauncherViewShell
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={launcherBackgroundImageUrl}
         showBackground={shouldUseBackgroundEverywhere}
         backgroundBlurPercent={launcherBackgroundImageBlurPercent}
@@ -2867,9 +2926,29 @@ const App: React.FC = () => {
 
   // ─── AI Chat mode ──────────────────────────────────────────────
   if (aiMode) {
+    if (aiPresentation === 'inline') return (
+      <LauncherInlineAiView
+        surface={launcherSurface}
+        answerSurfaceRef={answerSurfaceRef}
+        aiResponseRef={aiResponseRef as React.RefObject<HTMLDivElement>}
+        aiInputRef={aiInputRef as React.RefObject<HTMLInputElement>}
+        messages={aiMessages}
+        aiStreaming={aiStreaming}
+        aiAvailable={aiAvailable}
+        aiQuery={aiQuery}
+        setAiQuery={setAiQuery}
+        sendMessage={aiSendMessage}
+        stopStreaming={aiStopStreaming}
+        retryLastMessage={retryLastMessage}
+        onCopy={(content) => { void navigator.clipboard.writeText(content); }}
+        onBack={() => exitAiMode()}
+        onClose={() => { aiStopStreaming(); void window.electron.dismissLauncherSurface(); }}
+        onExpand={expandAiChat}
+        onOpenSettings={() => { void window.electron.openSettingsTab('ai'); }}
+      />
+    );
     return (
       <AiChatView
-        alwaysMountedRunners={alwaysMountedRunners}
         aiQuery={aiQuery}
         setAiQuery={setAiQuery}
         messages={aiMessages}
@@ -2891,8 +2970,6 @@ const App: React.FC = () => {
   // ─── App Uninstall mode ────────────────────────────────────────
   if (showAppUninstall) {
     return (
-      <>
-        {alwaysMountedRunners}
         <div className="w-full h-full">
           <div className="glass-effect overflow-hidden h-full flex flex-col relative">
             <AppUninstallView
@@ -2908,15 +2985,12 @@ const App: React.FC = () => {
             />
           </div>
         </div>
-      </>
     );
   }
 
   // ─── Onboarding mode ───────────────────────────────────────────
   if (showOnboarding) {
     return (
-      <>
-        {alwaysMountedRunners}
         <OnboardingExtension
           initialShortcut={launcherShortcut}
           requireWorkingShortcut={onboardingRequiresShortcutFix}
@@ -2940,20 +3014,25 @@ const App: React.FC = () => {
             await window.electron.hideWindow();
           }}
         />
-      </>
     );
   }
 
   // ─── Launcher mode ──────────────────────────────────────────────
   return (
     <LauncherMainView
-      alwaysMountedRunners={alwaysMountedRunners}
-      backgroundImageUrl={launcherBackgroundImageUrl}
-      backgroundBlurPercent={launcherBackgroundImageBlurPercent}
-      backgroundOpacityPercent={launcherBackgroundImageOpacityPercent}
+      surface={launcherSurface}
+      resultsVisible={resultsVisible}
+      searchSurfaceRef={searchSurfaceRef}
+      resultsSurfaceRef={resultsSurfaceRef}
+      overlaySurfaceRef={overlaySurfaceRef}
+      intentLabel={launcherIntent.kind === 'ai' ? undefined : launcherIntentLabel}
+      intentDescription={launcherIntent.kind === 'pending' ? launcherIntentLabel : t('launcher.intent.enter', { action: launcherIntentLabel })}
+      activeOptionId={launcherActiveOptionId}
+      fileSearchFailed={launcherFileStatus === 'error'}
+      tabAsksAi={Boolean(searchQuery.trim() && aiAvailable && !isShowingInlineArgumentInputs && !browserSearchAutoComplete)}
+      onOpenAiSettings={() => { void window.electron.openSettingsTab('ai'); }}
+      busy={deferredSearchQuery !== searchQuery}
 
-      inlineArgumentLaneRef={inlineArgumentLaneRef}
-      inlineArgumentClusterRef={inlineArgumentClusterRef}
       inlineArgumentInputRefs={inlineArgumentInputRefs}
       inlineQuickLinkInputRefs={inlineQuickLinkInputRefs}
 
@@ -2965,7 +3044,6 @@ const App: React.FC = () => {
       onSearchBlur={handleLauncherSearchBlur}
       onSearchKeyDown={handleKeyDown}
 
-      inlineArgumentStartPx={inlineArgumentStartPx}
       selectedInlineArgumentLeadingIcon={selectedInlineArgumentLeadingIcon}
 
       selectedInlineExtensionArgumentDefinitions={selectedInlineExtensionArgumentDefinitions}
@@ -2987,9 +3065,7 @@ const App: React.FC = () => {
       onAskAi={() => startAiChat(searchQuery)}
       onClearSearch={() => setSearchQuery('')}
 
-      launcherViewMode={launcherViewMode}
       isCompactCollapsed={isCompactCollapsed}
-      logoSrc={zapperLogo}
       onShowCompactLauncher={showCompactLauncher}
 
       listRef={listRef}
@@ -3045,10 +3121,17 @@ const App: React.FC = () => {
         restoreLauncherFocus();
       }}
 
-      isNativeLiquidGlass={isNativeLiquidGlass}
-      isGlassyTheme={isGlassyTheme}
       t={t}
     />
+  );
+  };
+
+  return (
+    <>
+      {hiddenExtensionRunners}
+      {detachedOverlayRunners}
+      {renderActiveView()}
+    </>
   );
 };
 

@@ -1,6 +1,7 @@
 /**
  * Type definitions for the Electron API exposed via preload
  */
+import type { LauncherSurfaceRequest, LauncherSurfaceSnapshot } from '../../shared/launcher-surface';
 
 export interface CommandInfo {
   id: string;
@@ -530,6 +531,7 @@ export interface AiChatMessage {
   content: string;
   createdAt: number;
   cancelled?: boolean;
+  error?: string;
 }
 
 export interface AiChatConversation {
@@ -843,7 +845,10 @@ export interface ElectronAPI {
   executeCommandAsHotkey: (commandId: string) => Promise<boolean>;
   executeCommandFromWidget: (commandId: string) => Promise<boolean>;
   hideWindow: () => Promise<void>;
-  resizeLauncherWindow: (expanded: boolean) => Promise<void>;
+  setLauncherSurface: (request: LauncherSurfaceRequest) => Promise<LauncherSurfaceSnapshot>;
+  getLauncherSurface: () => Promise<LauncherSurfaceSnapshot>;
+  onLauncherSurfaceChanged: (callback: (snapshot: LauncherSurfaceSnapshot) => void) => () => void;
+  dismissLauncherSurface: () => Promise<void>;
   showWindow: () => Promise<void>;
   activateLastFrontmostApp: () => Promise<void>;
   reportNoViewStatus: (variant: 'processing' | 'success' | 'error', text: string) => Promise<void>;

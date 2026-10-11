@@ -16,7 +16,6 @@ import type { CommandInfo } from '../../types/electron';
 
 interface ScriptCommandSetupViewProps {
   setup: ScriptCommandSetup;
-  alwaysMountedRunners: React.ReactNode;
   onBack: () => void;
   onContinue: (command: CommandInfo, values: Record<string, any>) => void;
   setScriptCommandSetup: React.Dispatch<React.SetStateAction<ScriptCommandSetup | null>>;
@@ -24,7 +23,6 @@ interface ScriptCommandSetupViewProps {
 
 export default function ScriptCommandSetupView({
   setup,
-  alwaysMountedRunners,
   onBack,
   onContinue,
   setScriptCommandSetup,
@@ -59,8 +57,6 @@ export default function ScriptCommandSetupView({
   }, [hasBlockingMissing, handleContinue, onBack]);
 
   return (
-    <>
-      {alwaysMountedRunners}
       <div className="w-full h-full">
         <div className="glass-effect sc-command-setup-shell overflow-hidden h-full flex flex-col">
           <div className="flex h-[56px] items-center gap-2 px-4 border-b border-[var(--ui-divider)]">
@@ -163,6 +159,5 @@ export default function ScriptCommandSetupView({
           </div>
         </div>
       </div>
-    </>
   );
 }

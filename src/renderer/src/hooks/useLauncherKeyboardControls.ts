@@ -9,6 +9,7 @@ import { isBrowserSearchCommand } from '../utils/browser-search-commands';
 import { WEB_SEARCH_ROOT_BANG_PREFIX } from '../utils/web-search-bangs';
 import { isEditableElement } from '../utils/launcher-misc';
 import { LAST_LAUNCHER_QUERY_KEY } from '../utils/constants';
+import { getLauncherCommandStableKey, type LauncherIntent } from '../utils/launcher-intent';
 
 function readLauncherQueryHistory(): string[] {
   try {
@@ -52,9 +53,13 @@ export type UseLauncherKeyboardControlsOptions = {
   calcResult: CalcResult | null;
 
   searchQuery: string;
+  launcherIntent: LauncherIntent;
+  onSelectResult: (index: number) => void;
+  onReturnToAiDefault: () => void;
+  canReturnToAiDefault?: boolean;
+  onQueryEdited: () => void;
   browserSearchAutoComplete: { completion: string } | null;
   launcherInputValue: string;
-
   aiAvailable: boolean;
   shouldHideAskAi: boolean;
   isShowingInlineArgumentInputs: boolean;
@@ -68,7 +73,6 @@ export type UseLauncherKeyboardControlsOptions = {
   bookmarkNicknamePrompt: { result: BrowserSearchResult; value: string } | null;
   showAppUninstall: string | null;
 
-  launcherViewMode: 'expanded' | 'compact';
   isCompactCollapsed: boolean;
 
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
@@ -91,6 +95,7 @@ export type UseLauncherKeyboardControlsOptions = {
       kind?: CommandInfo['browserResultKind'];
       url?: string;
       sourceProfileId?: string;
+      openInSourceProfile?: boolean;
       windowId?: string | number;
       tabId?: string | number;
     }
@@ -143,10 +148,14 @@ export function useLauncherKeyboardControls(
     calcOffset,
     calcResult,
     searchQuery,
+    launcherIntent,
+    onSelectResult,
+    onReturnToAiDefault,
+    onQueryEdited,
+    canReturnToAiDefault,
     browserSearchAutoComplete,
     launcherInputValue,
     aiAvailable,
-    shouldHideAskAi,
     isShowingInlineArgumentInputs,
     selectedInlineExtensionArgumentDefinitions,
     selectedInlineQuickLinkDynamicFields,
@@ -156,7 +165,6 @@ export function useLauncherKeyboardControls(
     quickLinkDynamicPrompt,
     bookmarkNicknamePrompt,
     showAppUninstall,
-    launcherViewMode,
     isCompactCollapsed,
     setSearchQuery,
     setSelectedIndex,
@@ -183,33 +191,7 @@ export function useLauncherKeyboardControls(
     updateInlineQuickLinkDynamicValue,
   } = options;
 
-  const togglePinSelectedCommand = useCallback(async () => {
-    if (!selectedCommand) return;
-    await pinToggleForCommand(selectedCommand);
-  }, [selectedCommand, pinToggleForCommand]);
 
-  const disableSelectedCommand = useCallback(async () => {
-    if (!selectedCommand) return;
-    await disableCommand(selectedCommand);
-  }, [selectedCommand, disableCommand]);
-
-  const uninstallSelectedExtension = useCallback(async () => {
-    if (!selectedCommand) return;
-    await uninstallExtensionCommand(selectedCommand);
-  }, [selectedCommand, uninstallExtensionCommand]);
-
-  const copyDeeplinkForSelectedCommand = useCallback(async () => {
-    if (!selectedCommand || !selectedCommand.deeplink) return;
-    await copyCommandDeeplink(selectedCommand);
-  }, [selectedCommand, copyCommandDeeplink]);
-
-  const moveSelectedPinnedCommand = useCallback(
-    async (direction: 'up' | 'down') => {
-      if (!selectedCommand) return;
-      await movePinnedCommand(selectedCommand, direction);
-    },
-    [selectedCommand, movePinnedCommand]
-  );
 
   // Tracks whether the user has already hit the top boundary at index 0
   // with an empty input — the next Up press fires history recall. We require
@@ -217,29 +199,27 @@ export function useLauncherKeyboardControls(
   // immediately replace the input with the most recent command.
   const recallPrimedRef = useRef(false);
 
-  const moveSelection = useCallback(
-    (direction: 'up' | 'down', options: { wrap?: boolean } = {}) => {
-      const { wrap = false } = options;
-      setSelectedIndex((prev) => {
-        const max = Math.max(0, displayCommands.length + calcOffset - 1);
-        if (direction === 'down') {
-          if (prev < max) return prev + 1;
-          return wrap ? 0 : max;
-        }
-        if (prev > 0) return prev - 1;
-        return wrap ? max : 0;
-      });
-    },
-    [displayCommands.length, calcOffset, setSelectedIndex]
-  );
+  const moveSelection = useCallback((direction: 'up' | 'down') => {
+    const max = displayCommands.length + calcOffset - 1;
+    if (max < 0) return;
+    if (direction === 'down') {
+      onSelectResult(Math.min(selectedIndex + 1, max));
+    } else if (selectedIndex > 0) {
+      onSelectResult(selectedIndex - 1);
+    } else if (selectedIndex === 0 && canReturnToAiDefault) {
+      onReturnToAiDefault();
+    }
+  }, [displayCommands.length, calcOffset, selectedIndex, canReturnToAiDefault, onSelectResult, onReturnToAiDefault]);
 
   const handleLauncherSearchBlur = useCallback(() => {
     if (!isLauncherModeActiveRef.current) return;
     requestAnimationFrame(() => {
       if (!isLauncherModeActiveRef.current) return;
+      if (!document.hasFocus()) return;
       const activeElement = document.activeElement;
-      if (activeElement === inputRef.current) return;
-      if (isEditableElement(activeElement)) return;
+      if (activeElement === inputRef.current || isEditableElement(activeElement)) return;
+      if (activeElement instanceof Element && activeElement.closest('[data-sc-experience="primary"]')) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       inputRef.current?.focus();
     });
   }, [inputRef, isLauncherModeActiveRef]);
@@ -257,21 +237,18 @@ export function useLauncherKeyboardControls(
       }
       const target = e.target as HTMLElement | null;
       const isSearchInputTarget = target === inputRef.current;
-
-      if (e.metaKey && (e.key === 'k' || e.key === 'K') && !e.repeat) {
+      const queryIsCurrent = launcherIntent.query === searchQuery.trim() &&
+        (!inputRef.current || inputRef.current.value === searchQuery);
+      const currentIntent = queryIsCurrent && launcherIntent.kind !== 'pending' ? launcherIntent : null;
+      const activeCommand = currentIntent?.kind === 'command'
+        ? displayCommands.find((command) => command.id === currentIntent.commandId &&
+          getLauncherCommandStableKey(command) === currentIntent.stableKey) ?? null
+        : null;
+      if (e.key === 'Enter' && (e.repeat || e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229)) {
         e.preventDefault();
-        if (showActions) {
-          setShowActions(false);
-          return;
-        }
-        if (!selectedCommand) return;
-        setContextMenu(null);
-        setActionsCommand(selectedCommand);
-        setSelectedActionIndex(0);
-        setShowActions(true);
         return;
       }
-
+      if (target?.closest('[role="dialog"], [role="menu"]')) return;
       if (showActions || contextMenu) {
         if (e.key === 'Escape') {
           e.preventDefault();
@@ -281,60 +258,74 @@ export function useLauncherKeyboardControls(
         }
         return;
       }
-      if (selectedFileResultPath && e.metaKey && !e.shiftKey && !e.altKey && (e.key === 'd' || e.key === 'D')) {
+      if (e.metaKey && (e.key === 'k' || e.key === 'K') && !e.repeat) {
         e.preventDefault();
-        showFileResultDetailsByPath(selectedFileResultPath);
+        if (!activeCommand) return;
+        setContextMenu(null);
+        setActionsCommand(activeCommand);
+        setSelectedActionIndex(0);
+        setShowActions(true);
         return;
       }
-      if (selectedFileResultPath && e.metaKey && e.key === 'Enter') {
-        e.preventDefault();
-        void revealFileResultByPath(selectedFileResultPath);
+      const activeFilePath = activeCommand ? selectedFileResultPath : null;
+      if (e.key !== 'Escape' && !currentIntent) {
+        if (e.key === 'Enter' || (e.metaKey && /^[1-9]$/.test(e.key))) e.preventDefault();
         return;
       }
-      if (selectedFileResultPath && e.metaKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) {
+      if (activeFilePath && e.metaKey && !e.shiftKey && !e.altKey && (e.key === 'd' || e.key === 'D')) {
         e.preventDefault();
-        void copyFileResultPath(selectedFileResultPath);
+        showFileResultDetailsByPath(activeFilePath);
         return;
       }
-      if (selectedFileResultPath && e.metaKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+      if (activeFilePath && e.metaKey && e.key === 'Enter') {
         e.preventDefault();
-        void pinToggleForFile(selectedFileResultPath);
+        void revealFileResultByPath(activeFilePath);
         return;
       }
-      if (!selectedFileResultPath && e.metaKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+      if (activeFilePath && e.metaKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) {
         e.preventDefault();
-        togglePinSelectedCommand();
+        void copyFileResultPath(activeFilePath);
         return;
       }
-      if (!selectedFileResultPath && e.metaKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+      if (activeFilePath && e.metaKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
         e.preventDefault();
-        disableSelectedCommand();
+        void pinToggleForFile(activeFilePath);
+        return;
+      }
+      if (!activeFilePath && activeCommand && e.metaKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+        e.preventDefault();
+        void pinToggleForCommand(activeCommand);
+        return;
+      }
+      if (!activeFilePath && activeCommand && e.metaKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+        e.preventDefault();
+        void disableCommand(activeCommand);
         return;
       }
       if (
-        !selectedFileResultPath &&
+        !activeFilePath &&
         e.metaKey &&
         e.shiftKey &&
         (e.key === 'L' || e.key === 'l') &&
-        selectedCommand?.deeplink
+        activeCommand?.deeplink
       ) {
         e.preventDefault();
-        void copyDeeplinkForSelectedCommand();
+        void copyCommandDeeplink(activeCommand);
         return;
       }
-      if (!selectedFileResultPath && e.metaKey && (e.key === 'Backspace' || e.key === 'Delete')) {
-        if (selectedCommand?.category === 'extension') {
+      if (!activeFilePath && e.metaKey && (e.key === 'Backspace' || e.key === 'Delete')) {
+        if (activeCommand?.category === 'extension') {
           e.preventDefault();
-          uninstallSelectedExtension();
+          void uninstallExtensionCommand(activeCommand);
           return;
         }
       }
       // Ctrl+X: Uninstall Application (for app commands and .app file results)
       if (e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && (e.key === 'x' || e.key === 'X')) {
-        const appPath = selectedFileResultPath?.endsWith('.app')
-          ? selectedFileResultPath
-          : (selectedCommand?.category === 'app' && selectedCommand?.path?.endsWith('.app'))
-            ? selectedCommand.path
+        const appPath = activeFilePath?.endsWith('.app')
+          ? activeFilePath
+          : (activeCommand?.category === 'app' && activeCommand?.path?.endsWith('.app'))
+            ? activeCommand.path
             : null;
         if (appPath) {
           e.preventDefault();
@@ -342,30 +333,36 @@ export function useLauncherKeyboardControls(
           return;
         }
       }
-      if (!selectedFileResultPath && e.metaKey && e.altKey && e.key === 'ArrowUp') {
+      if (!activeFilePath && activeCommand && e.metaKey && e.altKey && e.key === 'ArrowUp') {
         e.preventDefault();
-        moveSelectedPinnedCommand('up');
+        void movePinnedCommand(activeCommand, 'up');
         return;
       }
-      if (!selectedFileResultPath && e.metaKey && e.altKey && e.key === 'ArrowDown') {
+      if (!activeFilePath && activeCommand && e.metaKey && e.altKey && e.key === 'ArrowDown') {
         e.preventDefault();
-        moveSelectedPinnedCommand('down');
+        void movePinnedCommand(activeCommand, 'down');
         return;
       }
 
-      // Cmd+1 through Cmd+9: quick-launch the Nth command (Alfred-style)
+      // Number shortcuts refer to displayed rows, including the calculator row.
       if (e.metaKey && !e.shiftKey && !e.ctrlKey && !e.altKey && e.key >= '1' && e.key <= '9') {
-        const idx = parseInt(e.key, 10) - 1;
-        const target = displayCommands[idx];
-        if (target) {
+        const idx = Number(e.key) - 1;
+        if (idx === 0 && calcOffset && calcResult) {
           e.preventDefault();
-          handleCommandExecute(target);
+          navigator.clipboard.writeText(calcResult.result);
+          window.electron.hideWindow();
+          return;
+        }
+        const numberedCommand = displayCommands[idx - calcOffset];
+        if (numberedCommand) {
+          e.preventDefault();
+          handleCommandExecute(numberedCommand);
           return;
         }
       }
 
       if (e.altKey && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.key >= '1' && e.key <= '9') {
-        const selected = displayCommands[selectedIndex - calcOffset];
+        const selected = activeCommand;
         if (selected && isBrowserSearchCommand(selected) && !selected.id.startsWith(WEB_SEARCH_ROOT_BANG_PREFIX)) {
           e.preventDefault();
           void submitBrowserSearch(String(selected.browserActionInput || launcherInputValue).trim(), {
@@ -404,8 +401,8 @@ export function useLauncherKeyboardControls(
           if (isSearchInputTarget && browserSearchAutoComplete?.completion && !e.shiftKey) {
             e.preventDefault();
             const completion = browserSearchAutoComplete.completion;
+            onQueryEdited();
             setSearchQuery(completion);
-            setSelectedIndex(0);
             requestAnimationFrame(() => {
               const el = inputRef.current;
               if (!el) return;
@@ -416,22 +413,18 @@ export function useLauncherKeyboardControls(
             });
             return;
           }
-          if (isSearchInputTarget && aiAvailable && !shouldHideAskAi) {
+          if (isSearchInputTarget && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey &&
+              aiAvailable && searchQuery.trim() && currentIntent) {
             e.preventDefault();
-            if (launcherViewMode === 'compact') {
-              setIsCompactCollapsed(false);
-              window.electron.resizeLauncherWindow(true);
-            }
-            startAiChat(searchQuery);
+            startAiChat(currentIntent.query);
           }
           break;
 
         case 'ArrowDown':
           e.preventDefault();
           recallPrimedRef.current = false;
-          if (launcherViewMode === 'compact' && isCompactCollapsed) {
+          if (isCompactCollapsed && !searchQuery.trim()) {
             setIsCompactCollapsed(false);
-            window.electron.resizeLauncherWindow(true);
             break;
           }
           // History forward-cycle: if input matches a history entry and
@@ -442,11 +435,13 @@ export function useLauncherKeyboardControls(
             const history = readLauncherQueryHistory();
             const currentIndex = history.indexOf(searchQuery);
             if (currentIndex === 0) {
+              onQueryEdited();
               setSearchQuery('');
               setSelectedIndex(0);
               return;
             }
             if (currentIndex > 0) {
+              onQueryEdited();
               applyLauncherHistoryEntry(history[currentIndex - 1], setSearchQuery, setSelectedIndex, inputRef);
               return;
             }
@@ -463,16 +458,23 @@ export function useLauncherKeyboardControls(
           // primes recall, the second Up actually fires it. Active history
           // navigation (input already shows a history entry) keeps cycling
           // without re-priming.
+          if (selectedIndex === 0 && canReturnToAiDefault) {
+            recallPrimedRef.current = false;
+            onReturnToAiDefault();
+            return;
+          }
           if (isSearchInputTarget && selectedIndex === 0) {
             const history = readLauncherQueryHistory();
             if (history.length > 0) {
               if (searchQuery.length > 0) {
                 const currentIndex = history.indexOf(searchQuery);
                 if (currentIndex >= 0 && currentIndex + 1 < history.length) {
+                  onQueryEdited();
                   applyLauncherHistoryEntry(history[currentIndex + 1], setSearchQuery, setSelectedIndex, inputRef);
                   return;
                 }
               } else if (recallPrimedRef.current) {
+                onQueryEdited();
                 applyLauncherHistoryEntry(history[0], setSearchQuery, setSelectedIndex, inputRef);
                 recallPrimedRef.current = false;
                 return;
@@ -489,28 +491,32 @@ export function useLauncherKeyboardControls(
 
         case 'Enter':
           e.preventDefault();
-          if (calcResult && selectedIndex === 0) {
+          if (!currentIntent) break;
+          if (currentIntent.kind === 'ai') {
+            if (!e.metaKey && !e.altKey && !e.ctrlKey && !e.shiftKey && aiAvailable) {
+              startAiChat(currentIntent.query);
+            }
+          } else if (currentIntent.kind === 'calculator' && calcResult) {
             navigator.clipboard.writeText(calcResult.result);
             window.electron.hideWindow();
-          } else if (displayCommands[selectedIndex - calcOffset]) {
-            const selected = displayCommands[selectedIndex - calcOffset];
-            if (selectedFileResultPath && e.metaKey) {
-              void revealFileResultByPath(selectedFileResultPath);
-            } else if (selected && isBrowserSearchCommand(selected) && selected.id !== 'browser-search-action-show-all' && !selected.id.startsWith(WEB_SEARCH_ROOT_BANG_PREFIX)) {
-              const numberKey = e.altKey && /^[1-9]$/.test(e.key) ? e.key : null;
-              const focusExistingTab = selected.browserResultKind === 'open-tab' && e.metaKey && !e.altKey;
-              void submitBrowserSearch(String(selected.browserActionInput || launcherInputValue).trim(), {
+          } else if (currentIntent.kind === 'command' && activeCommand) {
+            if (activeFilePath && e.metaKey) {
+              void revealFileResultByPath(activeFilePath);
+            } else if (isBrowserSearchCommand(activeCommand) && activeCommand.id !== 'browser-search-action-show-all' &&
+                !activeCommand.id.startsWith(WEB_SEARCH_ROOT_BANG_PREFIX)) {
+              const focusExistingTab = activeCommand.browserResultKind === 'open-tab' && e.metaKey && !e.altKey;
+              void submitBrowserSearch(String(activeCommand.browserActionInput || launcherInputValue).trim(), {
                 focusExistingTab,
-                event: { altKey: e.altKey, numberKey },
-                kind: selected.browserResultKind,
-                url: selected.browserUrl,
-                sourceProfileId: selected.browserSourceProfileId,
-                openInSourceProfile: selected.browserNicknameMatch === true,
-                windowId: selected.browserWindowId,
-                tabId: selected.browserTabId,
+                event: { altKey: e.altKey, numberKey: null },
+                kind: activeCommand.browserResultKind,
+                url: activeCommand.browserUrl,
+                sourceProfileId: activeCommand.browserSourceProfileId,
+                openInSourceProfile: activeCommand.browserNicknameMatch === true,
+                windowId: activeCommand.browserWindowId,
+                tabId: activeCommand.browserTabId,
               });
-            } else if (selected) {
-              handleCommandExecute(selected);
+            } else {
+              handleCommandExecute(activeCommand);
             }
           }
           break;
@@ -526,20 +532,17 @@ export function useLauncherKeyboardControls(
             return;
           }
           if (searchQuery.length > 0) {
+            onQueryEdited();
             setSearchQuery('');
             setSelectedIndex(0);
-            if (launcherViewMode === 'compact') {
-              setIsCompactCollapsed(true);
-              window.electron.resizeLauncherWindow(false);
-            }
-            return;
-          }
-          if (launcherViewMode === 'compact' && !isCompactCollapsed) {
             setIsCompactCollapsed(true);
-            window.electron.resizeLauncherWindow(false);
             return;
           }
-          window.electron.hideWindow();
+          if (!isCompactCollapsed) {
+            setIsCompactCollapsed(true);
+            return;
+          }
+          void window.electron.dismissLauncherSurface();
           break;
       }
     },
@@ -552,28 +555,30 @@ export function useLauncherKeyboardControls(
       isShowingInlineArgumentInputs,
       selectedInlineExtensionArgumentDefinitions,
       selectedInlineQuickLinkDynamicFields,
-      shouldHideAskAi,
+      launcherIntent,
       startAiChat,
       calcResult,
       calcOffset,
-      togglePinSelectedCommand,
-      disableSelectedCommand,
-      uninstallSelectedExtension,
-      moveSelectedPinnedCommand,
-      copyDeeplinkForSelectedCommand,
+      pinToggleForCommand,
+      disableCommand,
+      uninstallExtensionCommand,
+      movePinnedCommand,
+      copyCommandDeeplink,
       selectedFileResultPath,
       showFileResultDetailsByPath,
       revealFileResultByPath,
       copyFileResultPath,
       pinToggleForFile,
       openAppUninstall,
-      selectedCommand,
+      onSelectResult,
+      onReturnToAiDefault,
+      onQueryEdited,
+      canReturnToAiDefault,
       contextMenu,
       showActions,
       quickLinkDynamicPrompt,
       bookmarkNicknamePrompt,
       showAppUninstall,
-      launcherViewMode,
       isCompactCollapsed,
       inputRef,
       inlineArgumentInputRefs,
@@ -593,23 +598,20 @@ export function useLauncherKeyboardControls(
   );
 
   const handleLauncherInputChange = useCallback((value: string) => {
+    onQueryEdited();
     setSearchQuery(value);
     // Typing invalidates the "press Up twice from index 0" priming.
     recallPrimedRef.current = false;
 
-    if (launcherViewMode === 'compact') {
-      if (isCompactCollapsed && value.length > 0) {
-        setIsCompactCollapsed(false);
-        window.electron.resizeLauncherWindow(true);
-      } else if (!isCompactCollapsed && value.length === 0) {
-        setIsCompactCollapsed(true);
-        window.electron.resizeLauncherWindow(false);
-      }
+    if (value.length > 0 && isCompactCollapsed) {
+      setIsCompactCollapsed(false);
+    } else if (value.length === 0 && !isCompactCollapsed) {
+      setIsCompactCollapsed(true);
     }
   }, [
     isCompactCollapsed,
-    launcherViewMode,
     setIsCompactCollapsed,
+    onQueryEdited,
     setSearchQuery,
   ]);
 
@@ -621,7 +623,6 @@ export function useLauncherKeyboardControls(
 
   const showCompactLauncher = useCallback(() => {
     setIsCompactCollapsed(false);
-    window.electron.resizeLauncherWindow(true);
   }, [setIsCompactCollapsed]);
 
   const handleInlineExtensionArgumentChange = useCallback((argumentName: string, value: string) => {

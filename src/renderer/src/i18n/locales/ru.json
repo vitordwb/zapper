@@ -129,7 +129,7 @@
       },
       "visualStyle": {
         "title": "Visual Style",
-        "description": "Use Default look or enable a glassy macOS Tahoe-inspired style.",
+        "description": "Выберите стиль дополнительных окон. Поиск и встроенный ИИ используют оформление в стиле системы.",
         "default": "Default",
         "glassy": "Glassy"
       },
@@ -141,7 +141,7 @@
       },
       "background": {
         "title": "Launcher Background Image",
-        "description": "Show a softly blurred, low-opacity image behind the launcher so it reads like a hint, not a full wallpaper.",
+        "description": "Настройте фон в поддерживаемых дополнительных окнах. Поиск и встроенный ИИ сохраняют чистый интерфейс в стиле системы.",
         "empty": "No image selected. The launcher will keep using its current background.",
         "choose": "Choose Image",
         "change": "Change Image",
@@ -150,7 +150,7 @@
         "summary": "Blur {blur}% · Opacity {opacity}%",
         "blur": "Blur",
         "opacity": "Opacity",
-        "useEverywhere": "Use this image in extension and core launcher views too"
+        "useEverywhere": "Использовать в поддерживаемых дополнительных окнах"
       },
       "updates": {
         "title": "App Updates",
@@ -811,6 +811,35 @@
     }
   },
   "launcher": {
+    "searchLabel": "Поиск приложений, команд, файлов или вопрос ИИ",
+    "resultsLabel": "Результаты поиска",
+    "intent": {
+      "askAi": "Спросить ИИ",
+      "execute": "Выполнить {title}",
+      "open": "Открыть {title}",
+      "web": "Поиск в интернете",
+      "enter": "Нажмите Enter, чтобы {action}",
+      "updating": "Обновление результатов…",
+      "selectionRemoved": "Этот результат больше недоступен. Выберите другой."
+    },
+    "inlineAi": {
+      "followUp": "Задать дополнительный вопрос…",
+      "followUpLabel": "Дополнительный вопрос",
+      "stop": "Остановить генерацию",
+      "send": "Отправить вопрос",
+      "retry": "Повторить попытку",
+      "expand": "Открыть весь диалог",
+      "unavailable": "ИИ недоступен. Настройте поставщика в настройках.",
+      "openSettings": "Открыть настройки ИИ",
+      "started": "Создание ответа.",
+      "completed": "Ответ готов.",
+      "cancelled": "Ответ отменён.",
+      "failed": "Не удалось завершить ответ."
+    },
+    "quickLinkPrompt": {
+      "title": "Заполнить аргументы быстрой ссылки",
+      "submit": "Открыть ссылку"
+    },
     "searchPlaceholder": "Поиск приложений, команд или запрос к AI...",
     "browserSearch": {
       "openUrl": "Открыть {url}",
@@ -859,6 +888,7 @@
       "showMore": "Show More"
     },
     "status": {
+      "fileSearchFailed": "Поиск файлов недоступен. Остальные результаты доступны.",
       "discoveringApps": "Поиск приложений...",
       "noMatchingResults": "Ничего не найдено",
       "results": "{count} результатов"
@@ -939,6 +969,14 @@
       "results": "Результаты"
     },
     "calculator": {
+      "kinds": {
+        "math": "Математика",
+        "unit": "Единицы",
+        "currency": "Валюта",
+        "crypto": "Криптовалюта",
+        "time": "Время",
+        "date": "Дата"
+      },
       "pressEnterToCopy": "Нажмите Enter, чтобы скопировать",
       "clickToCopy": "Нажмите, чтобы скопировать",
       "copy": "Копировать"

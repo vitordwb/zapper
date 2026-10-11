@@ -8,6 +8,7 @@ export interface InlineArgumentOption {
 interface InlineArgumentFieldProps {
   value: string;
   placeholder: string;
+  label?: string;
   type?: 'text' | 'password' | 'select';
   options?: InlineArgumentOption[];
   onChange: (value: string) => void;
@@ -15,12 +16,12 @@ interface InlineArgumentFieldProps {
   inputRef?: (el: HTMLInputElement | HTMLSelectElement | null) => void;
 }
 
-const BASE_FIELD_CLASS =
-  'sc-input sc-input--sm sc-input--bare h-[26px] max-w-[196px] min-w-[128px] !py-0 leading-none';
+const FIELD_CLASS = 'sc-primary-inline-argument-field box-border min-h-8 min-w-0 flex-[1_1_128px] border border-[var(--sc-color-surface-stroke)] bg-[var(--sc-color-surface-inset)] px-3 text-[var(--sc-color-text-primary)] placeholder:text-[var(--sc-color-text-tertiary)]';
 
 const InlineArgumentField: React.FC<InlineArgumentFieldProps> = ({
   value,
   placeholder,
+  label,
   type = 'text',
   options = [],
   onChange,
@@ -31,10 +32,12 @@ const InlineArgumentField: React.FC<InlineArgumentFieldProps> = ({
     return (
       <select
         ref={inputRef}
+        aria-label={label || placeholder}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={onKeyDown}
-        className={`sc-select sc-select--sm sc-select--bare h-[26px] max-w-[196px] min-w-[128px] !py-0 leading-none`}
+        className={FIELD_CLASS}
+        style={{ font: 'var(--sc-typography-control)' }}
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (
@@ -50,25 +53,27 @@ const InlineArgumentField: React.FC<InlineArgumentFieldProps> = ({
     <input
       ref={inputRef as ((el: HTMLInputElement | null) => void) | undefined}
       type={type}
+      aria-label={label || placeholder}
       value={value}
       placeholder={placeholder}
       onChange={(event) => onChange(event.target.value)}
       onKeyDown={onKeyDown as ((event: React.KeyboardEvent<HTMLInputElement>) => void) | undefined}
-      className={BASE_FIELD_CLASS}
+      className={FIELD_CLASS}
+      style={{ font: 'var(--sc-typography-control)' }}
     />
   );
 };
 
 export const InlineArgumentOverflowBadge: React.FC<{ count: number }> = ({ count }) => (
-  <div className="inline-flex h-9 items-center rounded-md border border-[var(--launcher-chip-border)] bg-[var(--launcher-chip-bg)] px-2 text-[0.75rem] font-medium text-[var(--text-subtle)]">
+  <span className="sc-primary-inline-argument-overflow inline-flex min-h-8 items-center border border-[var(--sc-color-surface-stroke)] bg-[var(--sc-color-surface-inset)] px-2 text-[var(--sc-color-text-secondary)]" style={{ font: 'var(--sc-typography-control)' }} aria-label={`+${count}`}>
     +{count}
-  </div>
+  </span>
 );
 
 export const InlineArgumentLeadingIcon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="inline-flex flex-shrink-0 items-center justify-center">
+  <span className="sc-primary-inline-argument-icon inline-flex shrink-0 items-center justify-center" aria-hidden="true">
     {children}
-  </div>
+  </span>
 );
 
 export default InlineArgumentField;

@@ -31,7 +31,6 @@ export type WebSearchCustomBangPromptState = {
 };
 
 type WebSearchViewProps = {
-  alwaysMountedRunners: React.ReactNode;
 
   backgroundImageUrl: string;
   showBackground: boolean;
@@ -79,7 +78,6 @@ type WebSearchViewProps = {
 };
 
 const WebSearchView: React.FC<WebSearchViewProps> = ({
-  alwaysMountedRunners,
   backgroundImageUrl,
   showBackground,
   backgroundBlurPercent,
@@ -127,7 +125,6 @@ const WebSearchView: React.FC<WebSearchViewProps> = ({
   return (
     <>
       <LauncherViewShell
-        alwaysMountedRunners={alwaysMountedRunners}
         backgroundImageUrl={backgroundImageUrl}
         showBackground={showBackground}
         backgroundBlurPercent={backgroundBlurPercent}

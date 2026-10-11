@@ -4,6 +4,10 @@ import type { CalcResult } from '../smart-calculator';
 import LauncherCalculatorCard from './LauncherCalculatorCard';
 import LauncherCommandRow from './LauncherCommandRow';
 
+export const LAUNCHER_CALCULATOR_OPTION_ID = 'sc-launcher-option-calculator';
+export const getLauncherCommandOptionId = (commandId: string): string =>
+  `sc-launcher-option-${encodeURIComponent(commandId)}`;
+
 export type LauncherCommandSection = {
   title: string;
   items: CommandInfo[];
@@ -19,6 +23,8 @@ type LauncherCommandListProps = {
   calcResult: CalcResult | null;
   calcOffset: number;
   selectedIndex: number;
+  selectionInactive?: boolean;
+  listboxId?: string;
   commandAliases: Record<string, string>;
   commandHotkeys: Record<string, string>;
   onCalculatorCopy: () => void;
@@ -41,6 +47,8 @@ const LauncherCommandList: React.FC<LauncherCommandListProps> = ({
   calcResult,
   calcOffset,
   selectedIndex,
+  selectionInactive = false,
+  listboxId = 'sc-launcher-results',
   commandAliases,
   commandHotkeys,
   onCalculatorCopy,
@@ -49,71 +57,77 @@ const LauncherCommandList: React.FC<LauncherCommandListProps> = ({
   t,
 }) => (
   <div
+    id={listboxId}
     ref={listRef}
-    className="flex-1 overflow-y-auto custom-scrollbar p-1.5 list-area"
+    role="listbox"
+    aria-label={t('launcher.resultsLabel')}
+    aria-busy={isLoading}
+    className="list-area custom-scrollbar min-h-0 flex-1 overflow-y-auto p-[var(--sc-spacing-results-inset)] [-webkit-app-region:no-drag]"
     style={isHidden ? { display: 'none' } : undefined}
   >
     {isLoading ? (
-      <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
-        <p className="text-sm">{t('launcher.status.discoveringApps')}</p>
+      <div role="status" className="py-4 text-center text-[length:.8125rem] text-[var(--sc-color-text-secondary)]">
+        {t('launcher.status.discoveringApps')}
       </div>
     ) : displayCommands.length === 0 && !calcResult ? (
-      <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
-        <p className="text-sm">{t('launcher.status.noMatchingResults')}</p>
+      <div role="status" className="py-4 text-center text-[length:.8125rem] text-[var(--sc-color-text-secondary)]">
+        {t('launcher.status.noMatchingResults')}
       </div>
     ) : (
-      <div className="space-y-0.5">
+      <>
         {calcResult && (
           <LauncherCalculatorCard
             result={calcResult}
+            optionId={LAUNCHER_CALCULATOR_OPTION_ID}
             selected={selectedIndex === 0}
-            itemRef={(el) => (itemRefs.current[0] = el)}
+            selectionInactive={selectionInactive}
+            itemRef={(el) => { itemRefs.current[0] = el; }}
             onCopy={onCalculatorCopy}
             t={t}
           />
         )}
-
         {sections.reduce(
-          (acc, section) => {
+          (acc, section, sectionIndex) => {
             const startIndex = acc.index;
-            if (section.title) {
-              acc.nodes.push(
-                <div
-                  key={`section-${section.title}`}
-                  className="px-3 pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[var(--text-subtle)] font-medium"
-                >
-                  {section.title}
-                </div>
-              );
-            }
-            section.items.forEach((command, i) => {
-              const flatIndex = startIndex + i;
-              const absoluteIndex = flatIndex + calcOffset;
-              const commandAlias = String(commandAliases[command.id] || '').trim();
-              const commandHotkey = String(commandHotkeys[command.id] || '').trim();
-              acc.nodes.push(
-                <LauncherCommandRow
-                  key={command.id}
-                  command={command}
-                  flatIndex={flatIndex}
-                  selected={absoluteIndex === selectedIndex}
-                  itemRef={(el) => (itemRefs.current[absoluteIndex] = el)}
-                  commandAlias={commandAlias}
-                  commandHotkey={commandHotkey}
-                  onClick={(event) => {
-                    void onCommandClick(command, absoluteIndex, event);
-                  }}
-                  onContextMenu={(event) => onCommandContextMenu(event, command, absoluteIndex)}
-                  t={t}
-                />
-              );
-            });
+            const headingId = `sc-launcher-section-${sectionIndex}`;
+            acc.nodes.push(
+              <div key={`section-${sectionIndex}`} role="group" aria-labelledby={section.title ? headingId : undefined}>
+                {section.title ? (
+                  <div
+                    id={headingId}
+                    className="flex min-h-[var(--sc-layout-section-height)] items-center px-[var(--sc-spacing-result-inline)] pt-[var(--sc-space-8)] text-[length:.75rem] font-medium leading-4 text-[var(--sc-color-text-secondary)]"
+                  >
+                    {section.title}
+                  </div>
+                ) : null}
+                {section.items.map((command, i) => {
+                  const flatIndex = startIndex + i;
+                  const absoluteIndex = flatIndex + calcOffset;
+                  return (
+                    <LauncherCommandRow
+                      key={command.id}
+                      command={command}
+                      optionId={getLauncherCommandOptionId(command.id)}
+                      flatIndex={flatIndex}
+                      selected={absoluteIndex === selectedIndex}
+                      selectionInactive={selectionInactive}
+                      itemRef={(el) => { itemRefs.current[absoluteIndex] = el; }}
+                      commandAlias={String(commandAliases[command.id] || '').trim()}
+                      commandHotkey={String(commandHotkeys[command.id] || '').trim()}
+                      onClick={(event) => { void onCommandClick(command, absoluteIndex, event); }}
+                      onContextMenu={(event) => onCommandContextMenu(event, command, absoluteIndex)}
+                      t={t}
+                    />
+                  );
+                })}
+              </div>
+            );
             acc.index += section.items.length;
             return acc;
           },
           { nodes: [] as React.ReactNode[], index: 0 }
         ).nodes}
-      </div>
+      </>
     )}
   </div>
 );

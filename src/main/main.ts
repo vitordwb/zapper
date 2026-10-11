@@ -19,6 +19,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { fork, execFileSync, type ChildProcess } from 'child_process';
 import { getNativeBinaryPath, resolvePackagedUnpackedPath } from './native-binary';
+import { LauncherSurfaceController, type LauncherSurfacePlacement } from './launcher-surface-controller';
+import { LAUNCHER_LAYOUT, type LauncherSurfaceRequest, type LauncherSurfaceSnapshot } from '../shared/launcher-surface';
 import { getAvailableCommands, executeCommand, invalidateCache, initCommandsCache, getInflightDiscovery, refreshCommandsNow } from './commands';
 import {
   loadSettings,
@@ -2290,7 +2292,6 @@ async function getNodeSnapshot(): Promise<{ target: NodeWindowInfo | null; windo
 
 const DEFAULT_WINDOW_WIDTH = 760;
 const DEFAULT_WINDOW_HEIGHT = 480;
-const COMPACT_WINDOW_HEIGHT = 100;
 const ONBOARDING_WINDOW_WIDTH = 1120;
 const ONBOARDING_WINDOW_HEIGHT = 740;
 const CURSOR_PROMPT_WINDOW_WIDTH = 500;
@@ -7959,17 +7960,152 @@ async function handleRendererRecoveryGiveUp(logMessage: string): Promise<void> {
   }, 5000).unref();
 }
 
+let launcherSurface: LauncherSurfaceController | null = null;
+let launcherProgrammaticMoves = 0;
+let launcherSurfaceReady = false;
+let launcherLastProgrammaticPosition: { x: number; y: number } | null = null;
+let launcherSurfaceDisplayId: number | null = null;
+let launcherSurfaceAppearance: 'light' | 'dark' = 'dark';
+let launcherOpacityTimer: ReturnType<typeof setTimeout> | null = null;
+let launcherOpacityEpoch = 0;
+let launcherOpacityTarget: 0 | 1 | null = null;
+const LAUNCHER_ENTRY_MS = 120;
+const LAUNCHER_DISMISS_MS = 100;
+
+// Invert the x component of cubic-bezier(.2,.8,.2,1), then sample its y.
+// Window opacity is driven by main, not by Chromium or a geometry animation.
+function launcherOpacityEase(progress: number): number {
+  let low = 0;
+  let high = 1;
+  for (let i = 0; i < 12; i++) {
+    const t = (low + high) / 2;
+    const x = 3 * (1 - t) * (1 - t) * t * .2 + 3 * (1 - t) * t * t * .2 + t * t * t;
+    if (x < progress) low = t;
+    else high = t;
+  }
+  const t = (low + high) / 2;
+  return 3 * (1 - t) * (1 - t) * t * .8 + 3 * (1 - t) * t * t + t * t * t;
+}
+
+function launcherPreferences(): LauncherSurfaceSnapshot['preferences'] {
+  const addon = getNativeHelpersAddon();
+  let native: Partial<LauncherSurfaceSnapshot['preferences']> = {};
+  try { native = addon?.getAccessibilityDisplayPreferences?.() || {}; } catch {}
+  const theme = electron.nativeTheme;
+  return {
+    reduceMotion: Boolean(systemPreferences.getAnimationSettings()?.prefersReducedMotion || native.reduceMotion),
+    reduceTransparency: Boolean(theme?.shouldUseReducedTransparency || native.reduceTransparency),
+    increaseContrast: Boolean(theme?.shouldUseHighContrastColors || native.increaseContrast),
+    differentiateWithoutColor: Boolean(native.differentiateWithoutColor),
+    invertColors: Boolean(theme?.shouldUseInvertedColorScheme || native.invertColors),
+  };
+}
+
+function clearLauncherNativeRegions(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  try { getNativeHelpersAddon()?.clearLauncherMaterialRegions?.(mainWindow.getNativeWindowHandle()); }
+  catch (error) { console.warn('[LauncherSurface] Region cleanup failed:', error); }
+}
+
+function applyLauncherSurface(placement: LauncherSurfacePlacement): LauncherSurfaceSnapshot {
+  const win = mainWindow;
+  if (!win || win.isDestroyed() || !launcherSurface) return placement.snapshot;
+  const { bounds, snapshot } = placement;
+  launcherProgrammaticMoves++;
+  const nextBounds = { x: Math.round(bounds.x), y: Math.round(bounds.y), width: Math.max(1, Math.round(bounds.width)), height: Math.max(1, Math.round(bounds.height)) };
+  launcherLastProgrammaticPosition = { x: nextBounds.x, y: nextBounds.y };
+  try { win.setBounds(nextBounds); }
+  finally { setTimeout(() => { launcherProgrammaticMoves = Math.max(0, launcherProgrammaticMoves - 1); }, 0); }
+  let final = placement;
+  const standardLegacy = snapshot.kind === 'legacy' && String(loadSettings().uiStyle || 'default') !== 'glassy';
+  if (launcherMode === 'default') {
+    win.setVibrancy(standardLegacy ? 'fullscreen-ui' : null as any);
+    win.setHasShadow(standardLegacy);
+    win.setBackgroundColor(standardLegacy ? '#10101400' : '#00000000');
+  }
+  if (!launcherSurfaceReady || launcherMode !== 'default' || snapshot.preferences.reduceTransparency || standardLegacy) {
+    clearLauncherNativeRegions();
+    final = launcherSurface.setMaterial('opaque', snapshot.preferences.reduceTransparency ? 'reduced-transparency' : !launcherSurfaceReady ? 'renderer-not-ready' : undefined);
+  } else {
+    const addon = getNativeHelpersAddon();
+    try {
+      if (!addon?.updateLauncherMaterialRegions) {
+        final = launcherSurface.setMaterial('opaque', 'addon-unavailable');
+      } else {
+        // Public sibling glass composition has not qualified for first-input behavior.
+        // Bounded public visual-effect regions are the supported native path.
+        const effect = addon.updateLauncherMaterialRegions(win.getNativeWindowHandle(), {
+          regions: snapshot.regions, appearance: launcherSurfaceAppearance,
+          material: 'visual-effect', fallbackMaterial: snapshot.kind === 'legacy' ? 'hud' : 'under-window-background',
+        });
+        final = launcherSurface.setMaterial(effect?.attached ? effect.material : 'opaque', effect?.attached ? undefined : 'attachment-failed');
+      }
+    } catch (error) {
+      console.warn('[LauncherSurface] Native material attachment failed:', error);
+      clearLauncherNativeRegions();
+      final = launcherSurface.setMaterial('opaque', 'attachment-failed');
+    }
+  }
+  if (!win.webContents.isDestroyed()) win.webContents.send('launcher-surface-changed', final.snapshot);
+  return final.snapshot;
+}
+
+function refreshLauncherSurfacePreferences(): void {
+  if (launcherSurface) {
+    const preferences = launcherPreferences();
+    if (preferences.reduceMotion && launcherOpacityTarget !== null) {
+      if (launcherOpacityTarget === 0) hideWindow();
+      else cancelLauncherOpacityMotion();
+    }
+    const placement = launcherSurface.setPreferences(preferences);
+    if (launcherMode === 'default') applyLauncherSurface(placement);
+  }
+}
+
+function chooseLauncherDisplay() {
+  const displays = screen.getAllDisplays();
+  return displays.find((display: any) => display.id === launcherSurfaceDisplayId) ||
+    screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+}
+
+function cancelLauncherOpacityMotion(resetOpacity = true): void {
+  launcherOpacityEpoch++;
+  if (launcherOpacityTimer) clearTimeout(launcherOpacityTimer);
+  launcherOpacityTimer = null;
+  launcherOpacityTarget = null;
+  if (resetOpacity && mainWindow && !mainWindow.isDestroyed()) mainWindow.setOpacity(1);
+}
+
+function animateLauncherOpacity(win: InstanceType<typeof BrowserWindow>, from: number, to: 0 | 1, duration: number, onComplete?: () => void): void {
+  const epoch = ++launcherOpacityEpoch;
+  launcherOpacityTarget = to;
+  const started = Date.now();
+  win.setOpacity(from);
+  const tick = () => {
+    if (epoch !== launcherOpacityEpoch || mainWindow !== win || win.isDestroyed()) return;
+    const progress = Math.min(1, (Date.now() - started) / duration);
+    win.setOpacity(from + (to - from) * launcherOpacityEase(progress));
+    if (progress === 1) {
+      launcherOpacityTimer = null;
+      launcherOpacityTarget = null;
+      onComplete?.();
+    } else {
+      launcherOpacityTimer = setTimeout(tick, 16);
+    }
+  };
+  launcherOpacityTimer = setTimeout(tick, 16);
+}
+
 function createWindow(): void {
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } =
-    primaryDisplay.workAreaSize;
+  const { x: displayX, y: displayY, width: screenWidth, height: screenHeight } = primaryDisplay.workArea;
   const useDarwinLauncherPanel = process.platform === 'darwin';
 
   mainWindow = new BrowserWindow({
-    width: DEFAULT_WINDOW_WIDTH,
-    height: DEFAULT_WINDOW_HEIGHT,
-    x: Math.floor((screenWidth - DEFAULT_WINDOW_WIDTH) / 2),
-    y: Math.floor(screenHeight * 0.2),
+    width: LAUNCHER_LAYOUT.searchWidth + 2 * LAUNCHER_LAYOUT.shadowInset,
+    height: LAUNCHER_LAYOUT.searchMinHeight + 2 * LAUNCHER_LAYOUT.shadowInset,
+    x: displayX + Math.floor((screenWidth - LAUNCHER_LAYOUT.searchWidth - 2 * LAUNCHER_LAYOUT.shadowInset) / 2),
+    y: displayY + Math.floor(screenHeight * LAUNCHER_LAYOUT.topFraction),
     frame: false,
     hasShadow: false,
     resizable: false,
@@ -8021,47 +8157,52 @@ function createWindow(): void {
   });
   disableWindowAnimation(mainWindow);
   mainWindow.setWindowButtonVisibility(true);
-  // Defer NSGlassEffectView attachment until the renderer's React tree has
-  // mounted (signalled via the 'renderer-ready' IPC from App.tsx's useEffect).
-  //
-  // Background: in 1.0.17, main.tsx switched from synchronous static imports
-  // to async dynamic import() chunks for memory savings. The launcher's App
-  // chunk loads asynchronously, so React mounts AFTER did-finish-load fires.
-  // applyLiquidGlassToWindow used to listen for did-finish-load and attach
-  // the glass view immediately — which meant on macOS Tahoe (private
-  // NSGlassEffectView) + hardened runtime (signed builds), the glass view
-  // got inserted while the WebContents view contained only the empty
-  // <div id="root">. AppKit registered the glass view in a state that
-  // suppressed mouseMoved/mouseDown delivery for the rest of the window's
-  // life. Pre-Tahoe didn't have NSGlassEffectView. Unsigned builds have
-  // looser AppKit behaviour, so they masked the bug.
-  //
-  // Waiting for 'renderer-ready' guarantees the React tree exists before
-  // glass attaches, which is the timing 1.0.16 (sync imports) had naturally.
-  let launcherGlassAttached = false;
-  const attachLauncherGlass = () => {
-    if (launcherGlassAttached) return;
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    launcherGlassAttached = true;
-    applyLiquidGlassToWindow(mainWindow, {
-      cornerRadius: 16,
-      fallbackVibrancy: 'under-window',
-    });
+  const capturedWindow = mainWindow;
+  launcherSurface = new LauncherSurfaceController(capturedWindow.webContents, primaryDisplay.workArea, launcherPreferences());
+  launcherSurface.beginRendererGeneration(capturedWindow.webContents);
+  launcherSurfaceReady = false;
+  applyLauncherSurface(launcherSurface.get());
+  const onLauncherRendererReady = (event: Electron.IpcMainEvent) => {
+    if (capturedWindow.isDestroyed() || event.sender !== capturedWindow.webContents || !launcherSurface) return;
+    launcherSurfaceReady = true;
+    try { applyLauncherSurface(launcherSurface.rendererReady(event.sender, launcherSurface.get().snapshot.rendererGeneration)); }
+    catch (error) { console.warn('[LauncherSurface] Renderer readiness rejected:', error); }
   };
-  const onAnyRendererReady = (event: any) => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    if (event.sender !== mainWindow.webContents) {
-      // Different window's renderer — keep listening for the launcher's.
-      ipcMain.once('renderer-ready', onAnyRendererReady);
-      return;
-    }
-    attachLauncherGlass();
+  ipcMain.on('renderer-ready', onLauncherRendererReady);
+  capturedWindow.once('closed', () => ipcMain.removeListener('renderer-ready', onLauncherRendererReady));
+  capturedWindow.webContents.on('did-start-navigation', (_event: any, _url: string, _inPlace: boolean, isMainFrame: boolean) => {
+    if (!isMainFrame || !launcherSurface) return;
+    cancelLauncherOpacityMotion();
+    launcherSurfaceReady = false;
+    clearLauncherNativeRegions();
+    launcherSurface.beginRendererGeneration(capturedWindow.webContents);
+    applyLauncherSurface(launcherSurface.get());
+  });
+  const onDisplayChange = () => {
+    if (!launcherSurface || capturedWindow.isDestroyed()) return;
+    const display = chooseLauncherDisplay();
+    launcherSurfaceDisplayId = display.id;
+    const placement = launcherSurface.setWorkArea(display.workArea);
+    if (launcherMode === 'default') applyLauncherSurface(placement);
   };
-  ipcMain.once('renderer-ready', onAnyRendererReady);
-  // Safety fallback: if renderer-ready never arrives (renderer crash, route
-  // change, etc.) attach glass after 5s anyway so we don't ship a glass-less
-  // launcher in edge cases.
-  setTimeout(attachLauncherGlass, 5000);
+  screen.on('display-removed', onDisplayChange);
+  screen.on('display-metrics-changed', onDisplayChange);
+  screen.on('display-added', onDisplayChange);
+  const onThemeChange = () => refreshLauncherSurfacePreferences();
+  electron.nativeTheme?.on('updated', onThemeChange);
+  let accessibilitySubscription: number | null = null;
+  try {
+    accessibilitySubscription = systemPreferences.subscribeWorkspaceNotification(
+      'NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification', onThemeChange,
+    );
+  } catch (error) { console.warn('[LauncherSurface] Accessibility subscription unavailable:', error); }
+  capturedWindow.once('closed', () => {
+    screen.removeListener('display-removed', onDisplayChange);
+    screen.removeListener('display-metrics-changed', onDisplayChange);
+    screen.removeListener('display-added', onDisplayChange);
+    electron.nativeTheme?.removeListener('updated', onThemeChange);
+    if (accessibilitySubscription !== null) systemPreferences.unsubscribeWorkspaceNotification(accessibilitySubscription);
+  });
 
   // Allow renderer getUserMedia requests so Chromium can surface native prompts.
   mainWindow.webContents.session.setPermissionRequestHandler((_wc: any, permission: any, callback: any) => {
@@ -8355,16 +8496,21 @@ function createWindow(): void {
     }
   });
 
-  // Persist the window position whenever it is moved in default mode so we
-  // can restore it on the next open.
   mainWindow.on('moved', () => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    if (launcherMode !== 'default') return;
-    const [x, y] = mainWindow.getPosition();
-    saveWindowState({ x, y });
+    if (!mainWindow || mainWindow.isDestroyed() || launcherMode !== 'default' || launcherProgrammaticMoves || !launcherSurface) return;
+    const bounds = mainWindow.getBounds();
+    if (launcherLastProgrammaticPosition?.x === bounds.x && launcherLastProgrammaticPosition?.y === bounds.y) return;
+    launcherLastProgrammaticPosition = null;
+    saveWindowState(launcherSurface.move(bounds));
   });
 
+  mainWindow.on('hide', () => cancelLauncherOpacityMotion(false));
+  mainWindow.on('close', () => { cancelLauncherOpacityMotion(); clearLauncherNativeRegions(); });
   mainWindow.on('closed', () => {
+    cancelLauncherOpacityMotion();
+    launcherSurface = null;
+    launcherSurfaceReady = false;
+    launcherSurfaceDisplayId = null;
     mainWindow = null;
   });
 }
@@ -8659,13 +8805,7 @@ function getLauncherSize(mode: LauncherMode) {
   if (mode === 'onboarding') {
     return { width: ONBOARDING_WINDOW_WIDTH, height: ONBOARDING_WINDOW_HEIGHT, topFactor: 0.12 };
   }
-  const viewMode = loadSettings().launcherViewMode || 'expanded';
-  const height = viewMode === 'compact' ? COMPACT_WINDOW_HEIGHT : DEFAULT_WINDOW_HEIGHT;
-  return { width: DEFAULT_WINDOW_WIDTH, height, topFactor: 0.2 };
-}
-
-function getLauncherSizeForCompact(): { width: number; height: number; topFactor: number } {
-  return { width: DEFAULT_WINDOW_WIDTH, height: COMPACT_WINDOW_HEIGHT, topFactor: 0.2 };
+  return { width: DEFAULT_WINDOW_WIDTH, height: DEFAULT_WINDOW_HEIGHT, topFactor: 0.2 };
 }
 
 function getTypingCaretRect():
@@ -8815,6 +8955,13 @@ function getFocusedInputRect():
 
 function applyLauncherBounds(mode: LauncherMode): void {
   if (!mainWindow) return;
+  if (mode === 'default' && launcherSurface) {
+    const display = isVisible && launcherSurfaceDisplayId !== null
+      ? chooseLauncherDisplay() : screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    launcherSurfaceDisplayId = display.id;
+    applyLauncherSurface(launcherSurface.show(display.workArea));
+    return;
+  }
   const cursorPoint = screen.getCursorScreenPoint();
   const caretRect = mode === 'prompt' ? getTypingCaretRect() : null;
   const focusedInputRect = mode === 'prompt' ? getFocusedInputRect() : null;
@@ -8917,7 +9064,12 @@ function setLauncherMode(mode: LauncherMode): void {
   if (mainWindow) {
     try {
       if (process.platform === 'darwin') {
-        if (mode === 'whisper' || mode === 'speak') {
+        if (mode === 'default') {
+          mainWindow.setVibrancy(null as any);
+          mainWindow.setHasShadow(false);
+          mainWindow.setFocusable(true);
+          mainWindow.setBackgroundColor('#00000000');
+        } else if (mode === 'whisper' || mode === 'speak') {
           mainWindow.setVibrancy(null as any);
           mainWindow.setHasShadow(false);
           mainWindow.setFocusable(true);
@@ -8954,13 +9106,8 @@ function setLauncherMode(mode: LauncherMode): void {
         setLauncherOverlayTopmost(true);
       }
     } catch {}
-    const onboardingTintChanged = (prevMode === 'onboarding') !== (mode === 'onboarding');
-    applyLiquidGlassToWindow(mainWindow, {
-      cornerRadius: 16,
-      fallbackVibrancy: 'under-window',
-      forceDarkTheme: mode === 'onboarding',
-      forceReapply: onboardingTintChanged,
-    });
+    if (mode !== 'default') clearLauncherNativeRegions();
+    else if (launcherSurface) applyLauncherSurface(launcherSurface.get());
   }
   if (mainWindow && isVisible && prevMode !== mode) {
     applyLauncherBounds(mode);
@@ -9079,6 +9226,8 @@ function captureFrontmostAppContext(): void {
 
 async function showWindow(options?: { systemCommandId?: string }): Promise<void> {
   if (!mainWindow) return;
+  cancelLauncherOpacityMotion();
+  const enteringPrimary = !isVisible && launcherMode === 'default' && !launcherPreferences().reduceMotion;
 
   // Suppress blur-to-hide for a brief grace period after showing.
   // AeroSpace, tiling WMs, and macOS Space transitions can fire blur
@@ -9168,6 +9317,8 @@ async function showWindow(options?: { systemCommandId?: string }): Promise<void>
   // Show first, notify second. The window-shown handler does non-trivial
   // work (state resets, focus, optional fetch); running it before show()
   // makes the user wait for that work before seeing the window.
+  // Set opacity before ordering front so the first frame cannot flash at full opacity.
+  if (enteringPrimary) mainWindow.setOpacity(0);
   if (shouldActivateLauncherWindow) {
     try {
       app.focus({ steal: true });
@@ -9190,6 +9341,8 @@ async function showWindow(options?: { systemCommandId?: string }): Promise<void>
   }
   mainWindow.moveTop();
   isVisible = true;
+  if (enteringPrimary) animateLauncherOpacity(mainWindow, 0, 1, LAUNCHER_ENTRY_MS);
+  const showEpoch = launcherOpacityEpoch;
 
   mainWindow.webContents.send('window-shown', windowShownPayload);
 
@@ -9221,7 +9374,7 @@ async function showWindow(options?: { systemCommandId?: string }): Promise<void>
 
   // First launch after app reopen can race with macOS activation; retry once.
   setTimeout(() => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (!mainWindow || mainWindow.isDestroyed() || !isVisible || launcherOpacityEpoch !== showEpoch) return;
     if (mainWindow.isVisible()) return;
     try {
       mainWindow.show();
@@ -9268,13 +9421,15 @@ async function showWindow(options?: { systemCommandId?: string }): Promise<void>
 
 function hideWindow(): void {
   if (!mainWindow) return;
+  cancelLauncherOpacityMotion(false);
   // Already hidden — calling mainWindow.hide() again on macOS triggers an
   // NSWindow orderOut which can shift focus to another Zapper window (e.g.
   // the settings window), causing paste/keystroke events to land there instead
   // of the user's active app.
-  if (!isVisible) return;
+  if (!isVisible) { mainWindow.setOpacity(1); return; }
   emitWindowHidden();
   mainWindow.hide();
+  mainWindow.setOpacity(1);
   isVisible = false;
   launcherEntryFrontmostApp = null;
   launcherEntryWindowManagementTargetWindowId = null;
@@ -9587,6 +9742,7 @@ async function hideAndPaste(): Promise<boolean> {
 
   // Hide the window first
   if (mainWindow && isVisible) {
+    cancelLauncherOpacityMotion();
     emitWindowHidden();
     mainWindow.hide();
     isVisible = false;
@@ -10866,6 +11022,7 @@ async function runCommandById(commandId: string, source: 'launcher' | 'hotkey' |
 
   if (commandId === 'system-reset-launcher-position') {
     clearWindowState();
+    if (launcherSurface) applyLauncherSurface(launcherSurface.resetAnchor());
     if (mainWindow && !mainWindow.isDestroyed()) {
       applyLauncherBounds('default');
     }
@@ -13912,6 +14069,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('reset-launcher-position', () => {
     clearWindowState();
+    if (launcherSurface) applyLauncherSurface(launcherSurface.resetAnchor());
     if (mainWindow && !mainWindow.isDestroyed() && isVisible && launcherMode === 'default') {
       applyLauncherBounds('default');
     }
@@ -14352,11 +14510,26 @@ app.whenReady().then(async () => {
     }
   );
 
-  ipcMain.handle('resize-launcher-window', (_event: any, expanded: boolean) => {
-    if (!mainWindow) return;
-    const curBounds = mainWindow.getBounds();
-    const targetHeight = expanded ? DEFAULT_WINDOW_HEIGHT : COMPACT_WINDOW_HEIGHT;
-    mainWindow.setBounds({ x: curBounds.x, y: curBounds.y, width: curBounds.width, height: targetHeight });
+  ipcMain.handle('set-launcher-surface', (event: Electron.IpcMainInvokeEvent, request: LauncherSurfaceRequest) => {
+    if (!mainWindow || event.sender !== mainWindow.webContents || !launcherSurface) throw new Error('Invalid launcher surface sender');
+    const placement = launcherSurface.request(event.sender, request);
+    launcherSurfaceAppearance = request.appearance;
+    return launcherMode === 'default' ? applyLauncherSurface(placement) : placement.snapshot;
+  });
+  ipcMain.handle('get-launcher-surface', (event: Electron.IpcMainInvokeEvent) => {
+    if (!mainWindow || event.sender !== mainWindow.webContents || !launcherSurface) throw new Error('Invalid launcher surface sender');
+    return launcherSurface.get().snapshot;
+  });
+  ipcMain.handle('dismiss-launcher-surface', async (event: Electron.IpcMainInvokeEvent) => {
+    if (!mainWindow || event.sender !== mainWindow.webContents) throw new Error('Invalid launcher surface sender');
+    const from = mainWindow.getOpacity();
+    cancelLauncherOpacityMotion(false);
+    if (!isVisible) { mainWindow.setOpacity(1); return; }
+    if (launcherPreferences().reduceMotion || launcherMode !== 'default') { hideWindow(); return; }
+    const win = mainWindow;
+    animateLauncherOpacity(win, from, 0, LAUNCHER_DISMISS_MS, () => {
+      if (mainWindow === win && !win.isDestroyed()) hideWindow();
+    });
   });
 
   ipcMain.handle('get-global-shortcut-status', () => {
@@ -14487,16 +14660,10 @@ app.whenReady().then(async () => {
         const shouldEnableGlassy = nextStyle === 'glassy';
         if (!shouldEnableGlassy) {
           for (const win of BrowserWindow.getAllWindows()) {
-            if (!win || win.isDestroyed()) continue;
+            if (!win || win.isDestroyed() || win === mainWindow) continue;
             syncNativeLiquidGlassClassOnWindow(win, false);
           }
         } else {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            applyLiquidGlassToWindow(mainWindow, {
-              cornerRadius: 16,
-              fallbackVibrancy: 'under-window',
-            });
-          }
           if (promptWindow && !promptWindow.isDestroyed()) {
             applyLiquidGlassToWindow(promptWindow, {
               cornerRadius: 16,
@@ -14515,6 +14682,9 @@ app.whenReady().then(async () => {
               fallbackVibrancy: 'hud',
             });
           }
+        }
+        if (launcherSurface && launcherMode === 'default' && launcherSurface.get().snapshot.kind === 'legacy') {
+          applyLauncherSurface(launcherSurface.get());
         }
       }
       if (patch.commandAliases !== undefined) {

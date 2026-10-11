@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { I18nProvider } from './i18n';
 import '../styles/index.css';
+import '../styles/launcher-primary.css';
 import { initializeTheme } from './utils/theme';
 import {
   consumeAutoReloadBudget,

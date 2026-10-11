@@ -9,6 +9,7 @@ export interface AiChatMessageRecord {
   content: string;
   createdAt: number;
   cancelled?: boolean;
+  error?: string;
 }
 
 export interface AiChatConversationRecord {
@@ -62,8 +63,9 @@ function normalizeMessage(value: unknown, index: number, fallbackTimestamp: numb
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const raw = value as Record<string, any>;
   const content = typeof raw.content === 'string' ? raw.content : '';
-  if (!content.trim()) return null;
   const role = raw.role === 'user' ? 'user' : 'assistant';
+  const error = typeof raw.error === 'string' ? raw.error.trim() : '';
+  if (!content.trim() && !(role === 'assistant' && (raw.cancelled || error))) return null;
   const createdAt = normalizeTimestamp(raw.createdAt, fallbackTimestamp + index);
   const id = typeof raw.id === 'string' && raw.id.trim()
     ? raw.id.trim()
@@ -74,6 +76,7 @@ function normalizeMessage(value: unknown, index: number, fallbackTimestamp: numb
     content,
     createdAt,
     ...(raw.cancelled ? { cancelled: true } : {}),
+    ...(role === 'assistant' && error ? { error } : {}),
   };
 }
 

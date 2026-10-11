@@ -129,7 +129,7 @@
       },
       "visualStyle": {
         "title": "视觉风格",
-        "description": "使用默认风格，或启用更接近 macOS Tahoe 风格的玻璃态界面。",
+        "description": "选择次级视图的样式。搜索和内嵌 AI 使用系统风格设计。",
         "default": "默认",
         "glassy": "玻璃态"
       },
@@ -141,7 +141,7 @@
       },
       "background": {
         "title": "启动器背景图",
-        "description": "在启动器后面显示一张低透明度、轻微模糊的背景图，让它更像氛围提示而不是完整壁纸。",
+        "description": "自定义受支持次级视图的背景。搜索和内嵌 AI 保持清爽的系统风格界面。",
         "empty": "尚未选择图片，启动器会继续使用当前背景。",
         "choose": "选择图片",
         "change": "更换图片",
@@ -150,7 +150,7 @@
         "summary": "模糊 {blur}% · 不透明度 {opacity}%",
         "blur": "模糊",
         "opacity": "不透明度",
-        "useEverywhere": "在扩展视图和核心启动器视图中也使用这张图片"
+        "useEverywhere": "在受支持的次级视图中使用"
       },
       "updates": {
         "title": "应用更新",
@@ -811,6 +811,35 @@
     }
   },
   "launcher": {
+    "searchLabel": "搜索应用、命令和文件，或向 AI 提问",
+    "resultsLabel": "搜索结果",
+    "intent": {
+      "askAi": "向 AI 提问",
+      "execute": "运行 {title}",
+      "open": "打开 {title}",
+      "web": "搜索网页",
+      "enter": "按回车以{action}",
+      "updating": "正在更新结果…",
+      "selectionRemoved": "此结果已不可用。请选择其他结果。"
+    },
+    "inlineAi": {
+      "followUp": "继续提问…",
+      "followUpLabel": "后续问题",
+      "stop": "停止生成",
+      "send": "发送问题",
+      "retry": "重试",
+      "expand": "打开完整对话",
+      "unavailable": "AI 不可用。请在设置中配置服务提供方。",
+      "openSettings": "打开 AI 设置",
+      "started": "正在生成回答。",
+      "completed": "回答已完成。",
+      "cancelled": "回答已取消。",
+      "failed": "无法完成回答。"
+    },
+    "quickLinkPrompt": {
+      "title": "填写快速链接参数",
+      "submit": "打开链接"
+    },
     "searchPlaceholder": "搜索应用、命令，或向 AI 提问...",
     "browserSearch": {
       "openUrl": "打开 {url}",
@@ -859,6 +888,7 @@
       "showMore": "显示更多"
     },
     "status": {
+      "fileSearchFailed": "文件搜索暂不可用。其他结果仍可使用。",
       "discoveringApps": "正在发现应用...",
       "noMatchingResults": "没有匹配的结果",
       "results": "{count} 个结果"
@@ -939,6 +969,14 @@
       "results": "结果"
     },
     "calculator": {
+      "kinds": {
+        "math": "数学",
+        "unit": "单位",
+        "currency": "货币",
+        "crypto": "加密货币",
+        "time": "时间",
+        "date": "日期"
+      },
       "pressEnterToCopy": "按回车复制",
       "clickToCopy": "点击复制",
       "copy": "复制"

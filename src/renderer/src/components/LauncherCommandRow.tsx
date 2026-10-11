@@ -11,8 +11,10 @@ import {
 
 type LauncherCommandRowProps = {
   command: CommandInfo;
+  optionId: string;
   flatIndex: number;
   selected: boolean;
+  selectionInactive?: boolean;
   itemRef: (el: HTMLDivElement | null) => void;
   commandAlias: string;
   commandHotkey: string;
@@ -23,8 +25,10 @@ type LauncherCommandRowProps = {
 
 const LauncherCommandRow: React.FC<LauncherCommandRowProps> = ({
   command,
+  optionId,
   flatIndex,
   selected,
+  selectionInactive = false,
   itemRef,
   commandAlias,
   commandHotkey,
@@ -32,65 +36,44 @@ const LauncherCommandRow: React.FC<LauncherCommandRowProps> = ({
   onContextMenu,
   t,
 }) => {
+  const title = getCommandDisplayTitle(command, t);
   const accessoryLabel = getCommandAccessoryLabel(command);
   const typeBadgeLabel = getCommandTypeBadgeLabel(command, t);
-  const fallbackCategory = getCategoryLabel(command.category, t);
+  const categoryLabel = getCategoryLabel(command.category, t);
+  const metadata = accessoryLabel || categoryLabel;
   const hotkeyParts = commandHotkey ? getShortcutDisplayParts(commandHotkey) : [];
+  const accessibleName = [title, metadata, typeBadgeLabel, commandAlias, commandHotkey]
+    .filter(Boolean)
+    .join(', ');
 
   return (
     <div
+      id={optionId}
       ref={itemRef}
-      className={`command-item px-3 py-2 rounded-lg cursor-pointer ${
-        selected ? 'selected' : ''
-      }`}
+      role="option"
+      aria-selected={selected}
+      aria-label={accessibleName}
+      data-sc-selection={selected ? (selectionInactive ? 'inactive' : 'active') : undefined}
+      className={`flex min-h-[var(--sc-layout-result-height)] cursor-pointer items-center gap-[var(--sc-spacing-result-iconGap)] px-[var(--sc-spacing-result-inline)] py-[var(--sc-space-10)] text-[var(--sc-color-text-primary)] [-webkit-app-region:no-drag] ${selected ? selectionInactive ? 'bg-[var(--sc-color-selection-inactive)]' : 'bg-[var(--sc-color-selection-background)]' : 'hover:bg-[var(--sc-color-hover-background)]'}`}
+      style={{ borderRadius: 'var(--sc-radius-result)' }}
       onClick={onClick}
       onContextMenu={onContextMenu}
     >
-      <div className="flex items-center gap-2.5">
-        <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 overflow-hidden">
-          {renderCommandIcon(command)}
-        </div>
-
-        <div className="min-w-0 flex-1 flex items-center gap-2">
-          <div className="text-[var(--text-primary)] text-[0.8125rem] font-medium truncate tracking-[0.004em]">
-            {getCommandDisplayTitle(command, t)}
-          </div>
-          {accessoryLabel ? (
-            <div className="text-[var(--text-muted)] text-[0.75rem] font-medium truncate">
-              {accessoryLabel}
-            </div>
-          ) : (
-            <div className="text-[var(--text-muted)] text-[0.6875rem] font-medium truncate">
-              {fallbackCategory}
-            </div>
-          )}
-          {commandAlias ? (
-            <div className="inline-flex items-center h-5 rounded-md border border-[var(--launcher-chip-border)] bg-[var(--launcher-chip-bg)] px-1.5 text-[0.625rem] font-mono text-[var(--text-subtle)] leading-none flex-shrink-0">
-              {commandAlias}
-            </div>
-          ) : null}
-          {hotkeyParts.length > 0 ? (
-            <span className="inline-flex items-center gap-0.5 flex-shrink-0">
-              {hotkeyParts.map((part, idx) => (
-                <kbd key={idx} className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded bg-[var(--kbd-bg)] px-1 text-[10px] font-medium text-[var(--text-muted)]">
-                  {part}
-                </kbd>
-              ))}
-            </span>
-          ) : null}
-        </div>
-        {typeBadgeLabel ? (
-          <div className="text-[var(--text-muted)] text-[0.6875rem] font-medium leading-none flex-shrink-0 truncate">
-            {typeBadgeLabel}
-          </div>
-        ) : null}
-        {flatIndex < 9 && (
-          <span className="inline-flex items-center gap-0.5 flex-shrink-0">
-            <kbd className="inline-flex items-center justify-center w-[18px] h-[18px] rounded bg-[var(--kbd-bg)] text-[10px] font-medium text-[var(--text-muted)]">⌘</kbd>
-            <kbd className="inline-flex items-center justify-center w-[18px] h-[18px] rounded bg-[var(--kbd-bg)] text-[10px] font-medium text-[var(--text-muted)]">{flatIndex + 1}</kbd>
-          </span>
-        )}
-      </div>
+      <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center [&>img]:h-9 [&>img]:w-9 [&>div]:h-9 [&>div]:w-9 [&>div>img]:h-5 [&>div>img]:w-5">
+        {renderCommandIcon(command)}
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-[var(--sc-spacing-result-textGap)]">
+        <span className="truncate text-[length:1rem] font-medium leading-5">{title}</span>
+        <span className="truncate text-[length:.8125rem] leading-[1.125rem] text-[var(--sc-color-text-secondary)]">{metadata}</span>
+      </span>
+      <span aria-hidden="true" className="flex min-w-0 max-w-[42%] shrink items-center justify-end gap-1.5 text-[length:.6875rem] leading-[.875rem] text-[var(--sc-color-text-tertiary)]">
+        {commandAlias ? <span className="max-w-20 truncate bg-[var(--sc-color-surface-inset)] px-1.5 py-1 font-mono" style={{ borderRadius: 'var(--sc-radius-keycap)' }}>{commandAlias}</span> : null}
+        {hotkeyParts.length ? <span className="flex shrink-0 gap-0.5">{hotkeyParts.map((part, index) => (
+          <kbd key={index} className="min-w-5 bg-[var(--sc-color-surface-inset)] px-1 py-1 text-center" style={{ borderRadius: 'var(--sc-radius-keycap)' }}>{part}</kbd>
+        ))}</span> : null}
+        {typeBadgeLabel ? <span className="max-w-20 truncate">{typeBadgeLabel}</span> : null}
+        {flatIndex < 9 ? <span className="shrink-0 bg-[var(--sc-color-surface-inset)] px-1.5 py-1" style={{ borderRadius: 'var(--sc-radius-keycap)' }}>⌘{flatIndex + 1}</span> : null}
+      </span>
     </div>
   );
 };

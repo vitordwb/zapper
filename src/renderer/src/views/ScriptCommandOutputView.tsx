@@ -15,18 +15,14 @@ import type { ScriptCommandOutput } from '../hooks/useAppViewManager';
 
 interface ScriptCommandOutputViewProps {
   output: ScriptCommandOutput;
-  alwaysMountedRunners: React.ReactNode;
   onBack: () => void;
 }
 
 const ScriptCommandOutputView: React.FC<ScriptCommandOutputViewProps> = ({
   output,
-  alwaysMountedRunners,
   onBack,
 }) => {
   return (
-    <>
-      {alwaysMountedRunners}
       <div className="w-full h-full">
         <div className="glass-effect overflow-hidden h-full flex flex-col">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/[0.06]">
@@ -50,7 +46,6 @@ const ScriptCommandOutputView: React.FC<ScriptCommandOutputViewProps> = ({
           </div>
         </div>
       </div>
-    </>
   );
 };
 

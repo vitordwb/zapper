@@ -129,7 +129,7 @@
       },
       "visualStyle": {
         "title": "Visual Style",
-        "description": "Use Default look or enable a glassy macOS Tahoe-inspired style.",
+        "description": "Wähle den Stil für weitere Ansichten. Suche und integrierte KI verwenden das vom System inspirierte Design.",
         "default": "Default",
         "glassy": "Glassy"
       },
@@ -141,7 +141,7 @@
       },
       "background": {
         "title": "Launcher Background Image",
-        "description": "Show a softly blurred, low-opacity image behind the launcher so it reads like a hint, not a full wallpaper.",
+        "description": "Passe Hintergründe in unterstützten weiteren Ansichten an. Suche und integrierte KI behalten eine klare, vom System inspirierte Oberfläche.",
         "empty": "No image selected. The launcher will keep using its current background.",
         "choose": "Choose Image",
         "change": "Change Image",
@@ -150,7 +150,7 @@
         "summary": "Blur {blur}% · Opacity {opacity}%",
         "blur": "Blur",
         "opacity": "Opacity",
-        "useEverywhere": "Use this image in extension and core launcher views too"
+        "useEverywhere": "In unterstützten weiteren Ansichten verwenden"
       },
       "updates": {
         "title": "App Updates",
@@ -811,6 +811,35 @@
     }
   },
   "launcher": {
+    "searchLabel": "Apps, Befehle und Dateien suchen oder KI fragen",
+    "resultsLabel": "Suchergebnisse",
+    "intent": {
+      "askAi": "KI fragen",
+      "execute": "{title} ausführen",
+      "open": "{title} öffnen",
+      "web": "Im Web suchen",
+      "enter": "Eingabetaste drücken, um {action}",
+      "updating": "Ergebnisse werden aktualisiert…",
+      "selectionRemoved": "Dieses Ergebnis ist nicht mehr verfügbar. Wähle ein anderes Ergebnis."
+    },
+    "inlineAi": {
+      "followUp": "Weitere Frage stellen…",
+      "followUpLabel": "Weitere Frage",
+      "stop": "Generierung stoppen",
+      "send": "Frage senden",
+      "retry": "Erneut versuchen",
+      "expand": "Vollständige Unterhaltung öffnen",
+      "unavailable": "KI ist nicht verfügbar. Konfiguriere einen Anbieter in den Einstellungen.",
+      "openSettings": "KI-Einstellungen öffnen",
+      "started": "Antwort wird erstellt.",
+      "completed": "Antwort fertig.",
+      "cancelled": "Antwort abgebrochen.",
+      "failed": "Die Antwort konnte nicht fertiggestellt werden."
+    },
+    "quickLinkPrompt": {
+      "title": "Quick-Link-Argumente eingeben",
+      "submit": "Link öffnen"
+    },
     "searchPlaceholder": "Befehle suchen...",
     "browserSearch": {
       "openUrl": "{url} öffnen",
@@ -859,6 +888,7 @@
       "showMore": "Show More"
     },
     "status": {
+      "fileSearchFailed": "Die Dateisuche ist nicht verfügbar. Andere Ergebnisse sind weiterhin verfügbar.",
       "discoveringApps": "Discovering apps...",
       "noMatchingResults": "No matching results",
       "results": "{count} results"
@@ -939,6 +969,14 @@
       "results": "Results"
     },
     "calculator": {
+      "kinds": {
+        "math": "Mathematik",
+        "unit": "Einheit",
+        "currency": "Währung",
+        "crypto": "Krypto",
+        "time": "Zeit",
+        "date": "Datum"
+      },
       "pressEnterToCopy": "Press Enter to copy",
       "clickToCopy": "Click to copy",
       "copy": "Copy"

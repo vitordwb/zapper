@@ -14,22 +14,6 @@ export function getQuickLinkIdFromCommandId(commandId: string): string | null {
   return id || null;
 }
 
-export function formatCalcKindLabel(kind: 'math' | 'unit' | 'currency' | 'crypto' | 'time' | 'date'): string {
-  switch (kind) {
-    case 'math':
-      return 'Math';
-    case 'unit':
-      return 'Unit';
-    case 'currency':
-      return 'Currency';
-    case 'crypto':
-      return 'Crypto';
-    case 'time':
-      return 'Time';
-    case 'date':
-      return 'Date';
-  }
-}
 
 export function normalizeQuickLinkDynamicFields(fields: QuickLinkDynamicField[]): QuickLinkDynamicField[] {
   const map = new Map<string, QuickLinkDynamicField>();

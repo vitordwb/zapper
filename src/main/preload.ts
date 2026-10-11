@@ -6,6 +6,7 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
+import type { LauncherSurfaceRequest, LauncherSurfaceSnapshot } from '../shared/launcher-surface';
 
 // In sandboxed preload, require('os') is NOT available.
 // Use process.env which IS available in preload.
@@ -56,7 +57,14 @@ const electronAPI = {
   executeCommandFromWidget: (commandId: string): Promise<boolean> =>
     ipcRenderer.invoke('execute-command-from-widget', commandId),
   hideWindow: (): Promise<void> => ipcRenderer.invoke('hide-window'),
-  resizeLauncherWindow: (expanded: boolean): Promise<void> => ipcRenderer.invoke('resize-launcher-window', expanded),
+  setLauncherSurface: (request: LauncherSurfaceRequest): Promise<LauncherSurfaceSnapshot> => ipcRenderer.invoke('set-launcher-surface', request),
+  getLauncherSurface: (): Promise<LauncherSurfaceSnapshot> => ipcRenderer.invoke('get-launcher-surface'),
+  onLauncherSurfaceChanged: (callback: (snapshot: LauncherSurfaceSnapshot) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, snapshot: LauncherSurfaceSnapshot) => callback(snapshot);
+    ipcRenderer.on('launcher-surface-changed', listener);
+    return () => ipcRenderer.removeListener('launcher-surface-changed', listener);
+  },
+  dismissLauncherSurface: (): Promise<void> => ipcRenderer.invoke('dismiss-launcher-surface'),
   showWindow: (): Promise<void> => ipcRenderer.invoke('show-window'),
   activateLastFrontmostApp: (): Promise<void> => ipcRenderer.invoke('activate-last-frontmost-app'),
   reportNoViewStatus: (variant: 'processing' | 'success' | 'error', text: string): Promise<void> =>

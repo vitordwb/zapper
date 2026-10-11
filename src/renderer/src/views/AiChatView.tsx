@@ -19,7 +19,6 @@ import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 import zapperLogo from '../../../../zapper.png';
 
 interface AiChatViewProps {
-  alwaysMountedRunners: React.ReactNode;
   aiQuery: string;
   setAiQuery: (query: string) => void;
   messages: AiMessage[];
@@ -122,8 +121,9 @@ function formatRelativeTime(ts: number): string {
 const QACard: React.FC<{ pair: QAPair; isStreaming: boolean }> = React.memo(({ pair, isStreaming }) => {
   const answerContent = pair.answer?.content || '';
   const cancelled = pair.answer?.cancelled;
+  const error = pair.answer?.error;
   const showThinking = isStreaming && !answerContent;
-  const showAssistantRow = showThinking || answerContent || cancelled;
+  const showAssistantRow = Boolean(showThinking || answerContent || cancelled || error);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {
@@ -224,6 +224,11 @@ const QACard: React.FC<{ pair: QAPair; isStreaming: boolean }> = React.memo(({ p
                   style={{ background: 'var(--danger, #ef4444)' }}
                 />
                 Response cancelled
+              </div>
+            )}
+            {error && (
+              <div role="alert" className="mt-2 text-[11px]" style={{ color: 'var(--danger, #ef4444)' }}>
+                {error}
               </div>
             )}
           </div>
@@ -511,7 +516,6 @@ const HistoryOverlay: React.FC<{
 // ─── Main View ──────────────────────────────────────────────────────
 
 const AiChatView: React.FC<AiChatViewProps> = ({
-  alwaysMountedRunners,
   aiQuery,
   setAiQuery,
   messages,
@@ -692,12 +696,9 @@ const AiChatView: React.FC<AiChatViewProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229 || e.repeat) return;
       e.preventDefault();
-      if (aiStreaming) {
-        stopStreaming();
-        return;
-      }
-      if (aiQuery.trim()) sendMessage(aiQuery);
+      if (aiQuery.trim() && !aiStreaming) sendMessage(aiQuery);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       exitAiMode();
@@ -707,8 +708,6 @@ const AiChatView: React.FC<AiChatViewProps> = ({
   const placeholder = pairs.length === 0 ? 'Ask AI anything…' : 'Ask follow-up…';
 
   return (
-    <>
-      {alwaysMountedRunners}
       <div className="w-full h-full">
         <div className="glass-effect overflow-hidden h-full flex flex-col relative">
           {/* Header */}
@@ -869,7 +868,6 @@ const AiChatView: React.FC<AiChatViewProps> = ({
           )}
         </div>
       </div>
-    </>
   );
 };
 

@@ -1,0 +1,57 @@
+{
+  "scope": "Research only; no Zapper application code, styling, dependencies, settings or protected system components changed. Curated evidence summary, not a canonical REA export.",
+  "researchDate": "2026-10-10",
+  "priority": "Cmd+Space -> search or natural-language prompt -> visible intent -> Enter -> AI response in the floating surface. Standalone conversation history is secondary, not the target design.",
+  "environment": {
+    "sw_vers": {"ProductName": "macOS", "ProductVersion": "27.0.1", "BuildVersion": "26A434"},
+    "architecture": "arm64",
+    "gpu": "Apple M4",
+    "appearance": "Dark, read with defaults read -g AppleInterfaceStyle",
+    "accessibility": {"source": "NSWorkspace public getters via swift", "reduceMotion": false, "reduceTransparency": false, "increaseContrast": false},
+    "screens": [
+      {"name": "Color LCD", "logicalFrameAppKit": [0, 0, 1710, 1107], "visibleFrameAppKit": [0, 0, 1710, 1073.5], "backingScaleFactor": 2, "renderPixels": [3420, 2214], "reportedPanelPixels": [2880, 1864], "reportedHz": 60},
+      {"name": "Sidecar Display", "logicalFrameAppKit": [331, -789, 1135, 789], "backingScaleFactor": 2, "renderPixels": [2270, 1578], "reportedHz": 60}
+    ],
+    "installedPackages": {"electron": "41.10.7", "react": "18.3.1", "react-dom": "18.3.1", "tailwindcss": "3.4.19", "vite": "5.4.21", "typescript": "5.9.3", "electron-liquid-glass": "1.1.1"}
+  },
+  "rea": {
+    "version": "6.3.0, already cached npm package; no installation",
+    "entry": "node <existing-cache>/rea-agents/scripts/rea.mjs",
+    "doctor": "OMP registration missing/config_drift; no configuration repair. CLI static inspection worked.",
+    "spotlight": {"operation": "inspect-macho", "evidenceId": "ev_b5b995998ac2dabd95ba01f9e412032907732bbcd9cb338945f143e4a9844219", "path": "/System/Library/CoreServices/Spotlight.app/Contents/MacOS/Spotlight", "sha256": "ccf7a70b8a3f9ca96146171e52116dc0ffcf9eb57f6d7902af290c980356dda3", "minimumOS": "27.0", "sdk": "27.0", "bundleVersion": "236.0.21.401", "observedImports": ["AppKit", "SpotlightUIInternal", "SpotlightUIShared", "libswiftCore"], "limit": "Imports establish binary dependencies, not specific materials, view ownership or executed paths."},
+    "siriAI": {"operation": "inspect-macho", "evidenceId": "ev_df2bed90b45353ab9a29c8f92ed9e03d9a1bb4466379f8a9c6d0b871c2ded392", "path": "/System/Applications/Siri AI.app/Contents/MacOS/Siri AI", "sha256": "e9bfded130e38996974febbd13a8ea6eb49c8249a80cf374594ef766d18798c0", "minimumOS": "27.0", "sdk": "27.0"},
+    "runtimeFailures": ["Siri AI observe-native-ui: process-identity-unavailable: Selected application does not expose a launch time; stable PID reuse checks are unavailable", "Spotlight observe-native-ui: window-mismatch: Selected window is absent or belongs to another process"],
+    "staticLimitations": ["Stripped/toolchain-hidden symbols may be absent", "vtool retained as provenance but otool build metadata normalized", "Segment evidence offsets unavailable because selected Mach-O slice container offset was not observed"]
+  },
+  "nativeObservation": {
+    "tools": ["Orca 1.4.224 computer-use AX and ScreenCaptureKit", "Public CoreGraphics window metadata", "Already-authorized CGEvent keyboard input and screencapture via Swift"],
+    "permissionPreflight": {"AXIsProcessTrusted": true, "CGPreflightPostEventAccess": true, "CGPreflightScreenCaptureAccess": true, "securitySettingsChanged": false},
+    "surfaceOwner": "com.apple.campo (Siri AI)",
+    "panelWindowId": 35869,
+    "panelLayer": null,
+    "states": [
+      {"id": "O01", "name": "Cmd+Space idle", "boundsTopLeftPoints": [595, 251, 520, 95], "ax": "system dialog; focused Search or Ask search text field; Search and Studio microphone buttons", "asset": "panel-idle.png"},
+      {"id": "O02", "name": "Calculator results", "ax": "Calculator selected initially; application, folder and document results; category chips Dictionary, Applications, Folders", "limit": "The first capture occurred during resize and used 3420x2148 backing extent. Stable geometry comes from O03."},
+      {"id": "O03", "name": "Down selects folder", "boundsTopLeftPoints": [595, 251, 520, 508], "ax": "Selected soulver-calculator result; collection receives focus; input retains Calculator; inline intent changes to selected result; Tab hint shown", "asset": "panel-results-selected.png"},
+      {"id": "O04", "name": "Natural-language intent", "boundsTopLeftPoints": [595, 251, 520, 88], "ax": "Why is the sky blue? — Ask Siri; focused search field", "asset": "panel-prompt-intent.png"},
+      {"id": "O05", "name": "Processing after Return", "ax": "Searching for arithmetic query; Looking into it for prose query", "asset": "panel-ai-loading.png", "limit": "Single in-flight image; original capture 3420x2148 during resize. No duration/easing measurement."},
+      {"id": "O06", "name": "Arithmetic answer in floating panel", "boundsTopLeftPoints": [644, 222, 420, 175], "query": "What is 7 times 8?", "ax": "It's 56.; card 7 × 8 = 56; Copy button", "asset": "panel-ai-calculation.png"},
+      {"id": "O07", "name": "Prose answer in floating panel", "boundsTopLeftPoints": [645, 226, 420, 601], "query": "Why is the sky blue?", "ax": "Answer text, headings, scroll container, source controls, attachment menu, focused Ask Siri follow-up field, voice toggle 0", "asset": "panel-ai-answer.png"},
+      {"id": "O08", "name": "Dismissal", "action": "Escape after prose answer", "verifiedAfter": "No on-screen window for panel 35869"}
+    ],
+    "secondarySiri": {"windowId": 35872, "initialBoundsTopLeftPoints": [860, 575, 840, 522], "laterBoundsTopLeftPoints": [860, 43, 840, 1054], "sidebarWidthPoints": 336, "resizeCause": "Not established; do not attribute to Siri expansion", "observed": ["No Conversation Selected", "New Conversation / Ask Siri", "What is 2 + 2? -> It's 4. plus calculator card", "Voice toggle 1 removes text field from AX tree; Escape restores field and toggle 0"], "limit": "No spoken query/recognition-quality test; only one privacy-cropped empty pane retained as a secondary reference."},
+    "captureCaveats": ["Window-only captures exclude the desktop and can render native backdrop contributions as dark/transparent. Not suitable for recovering real desktop blur radius, alpha, or final composite RGB.", "Orca sometimes paired a new dialog AX tree with old standard-window geometry when a shortcut was sent to the standard window. Only explicit panel-id captures after fresh state reads were admitted to measurements.", "During transitions, compositor/AX frame temporarily covered most of the display; not a content-size target.", "AXSetValue updated text before results/intent settled. Intermediate captures with old Calculator results under a new question were excluded from normative state evidence.", "Orca ArrowDown key spelling was unsupported; Down worked and selection was verified.", "Finder AX initially reported permission_denied despite granted inventory. No permissions were toggled; Siri AX and trusted public event APIs worked.", "No light-appearance switch, wallpaper change, Spaces transition, Sidecar interaction, hover test, Quick Look activation, or frame-timed animation recording."],
+    "privacy": "No personal history screenshots/trees retained. Root result names shown are code/artifact names without home paths. Benign arithmetic and sky questions were submitted for research. Existing conversations were not edited/deleted; research interactions may remain in native history. Microphone UI inspected without a spoken request. No running user processes terminated."
+  },
+  "images": [
+    {"file": "panel-idle.png", "sourceCaptureId": "fafe5450-9a62-402d-853a-7fd6c037ef87", "originalPixels": [1040, 190], "scale": 2, "cropTopLeftPixels": null},
+    {"file": "panel-results-selected.png", "sourceCaptureId": "bf29fd4e-c628-4edb-8b8a-35893cc1bcbb", "originalPixels": [1040, 1016], "scale": 2, "cropTopLeftPixels": null},
+    {"file": "panel-prompt-intent.png", "sourceCaptureId": "b03cfa92-6938-449d-9a71-3a9f781b12e6", "originalPixels": [1040, 176], "scale": 2, "cropTopLeftPixels": null},
+    {"file": "panel-ai-loading.png", "sourceCaptureId": "4bdf0273-2a46-4c65-8168-f54be31ace1b", "originalPixels": [3420, 2148], "scale": 2, "cropTopLeftPixels": [1460, 380, 500, 200]},
+    {"file": "panel-ai-calculation.png", "sourceCaptureId": "e52cd101-4288-47d1-b181-3620579dca15", "originalPixels": [840, 350], "scale": 2, "cropTopLeftPixels": null},
+    {"file": "panel-ai-answer.png", "sourceCaptureId": "19e123aa-c421-45c5-9486-9b915e754623", "originalPixels": [840, 1202], "scale": 2, "cropTopLeftPixels": null},
+    {"file": "siri-standalone-empty-secondary.png", "sourceCaptureId": "6c6401f8-dec4-4cd2-8013-4390428c8fb8", "originalPixels": [1680, 1044], "scale": 2, "cropTopLeftPixels": [672, 0, 1008, 1044]},
+    {"file": "apple-spotlight-27-reference.png", "source": "https://ipcdn-web.apple.com/assets/v2/web/41f5b833-3bf6-480c-8010-1fd8ea421ed2", "page": "https://support.apple.com/guide/mac-help/find-what-you-need-with-spotlight-mchlp1008/mac", "pageVersion": "macOS 27", "originalPixels": [974, 646], "htmlPresentationSize": [487, 323], "scale": null, "limit": "Apple documentation illustration, not a capture of this machine. Intrinsic/presentation ratio does not prove capture scale or point dimensions. Copyright Apple; research reference only."}
+  ],
+  "documentValidation": {"requiredSections": 13, "renderedMarkdownTables": 22, "validRelativeLinks": 10, "verifiedPngDimensions": 8, "opaqueForegroundBackgroundContrastPairs": 72, "minimumContrastRatio": 4.595, "contrastScope": "Primary, secondary, tertiary and semantic-status foregrounds over the six listed opaque surface/selection/hover backgrounds in both appearances; not native-glass composites or disabled chrome.", "visualSmoke": "Rendered Markdown in a separately spawned existing Google Chrome profile; checked color-table layout and opened the inline-answer PNG through its document link. Preview browser and local server closed after verification.", "applicationCodeChanged": false, "zapperRuntimeExercised": false, "nativeAppleFlowExercised": true}
+}

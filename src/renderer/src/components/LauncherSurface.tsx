@@ -5,23 +5,30 @@ import {
   launcherBackgroundBlurPercentToPx,
 } from '../utils/launcher-background';
 
-type LauncherSurfaceProps = {
+type LauncherSurfaceProps = ({
+  region: 'search' | 'results' | 'answer';
+  backgroundImageUrl?: never;
+  showBackground?: never;
+  backgroundBlurPercent?: never;
+  backgroundOpacityPercent?: never;
+} | {
+  region?: never;
   backgroundImageUrl: string;
   showBackground: boolean;
   backgroundBlurPercent: number;
   backgroundOpacityPercent: number;
+}) & {
   className?: string;
+  regionRef?: React.Ref<HTMLElement>;
   children: React.ReactNode;
 };
 
-const LauncherSurface: React.FC<LauncherSurfaceProps> = ({
-  backgroundImageUrl,
-  showBackground,
-  backgroundBlurPercent,
-  backgroundOpacityPercent,
-  className = '',
-  children,
-}) => {
+const LauncherSurface: React.FC<LauncherSurfaceProps> = (props) => {
+  const { className = '', children } = props;
+  if (props.region) {
+    return <section ref={props.regionRef} data-sc-region={props.region} className={['sc-primary-region', 'sc-primary-region--' + props.region, className].join(' ').trim()}>{children}</section>;
+  }
+  const { backgroundImageUrl, showBackground, backgroundBlurPercent, backgroundOpacityPercent } = props;
   const backgroundOpacity = clampLauncherBackgroundPercent(
     backgroundOpacityPercent,
     DEFAULT_LAUNCHER_BACKGROUND_OPACITY_PERCENT

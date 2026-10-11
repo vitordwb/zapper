@@ -129,7 +129,7 @@
       },
       "visualStyle": {
         "title": "ビジュアルスタイル",
-        "description": "デフォルトの外観を使うか、macOS Tahoe 風のグラス調スタイルを有効にします。",
+        "description": "サブビューのスタイルを選択します。検索とインライン AI にはシステムに着想を得たデザインが適用されます。",
         "default": "デフォルト",
         "glassy": "グラス調"
       },
@@ -141,7 +141,7 @@
       },
       "background": {
         "title": "ランチャーの背景画像",
-        "description": "ランチャーの背後にソフトにぼかした低不透明度の画像を表示し、壁紙ではなくヒントとして読めるようにします。",
+        "description": "対応するサブビューの背景をカスタマイズします。検索とインライン AI はシステムに着想を得たすっきりした表示を保ちます。",
         "empty": "画像が選択されていません。ランチャーは現在の背景を使用し続けます。",
         "choose": "画像を選択",
         "change": "画像を変更",
@@ -150,7 +150,7 @@
         "summary": "ぼかし {blur}% · 不透明度 {opacity}%",
         "blur": "ぼかし",
         "opacity": "不透明度",
-        "useEverywhere": "拡張機能とコアランチャービューでもこの画像を使用する"
+        "useEverywhere": "対応するサブビューで使用"
       },
       "updates": {
         "title": "アプリのアップデート",
@@ -811,6 +811,35 @@
     }
   },
   "launcher": {
+    "searchLabel": "アプリ、コマンド、ファイルを検索、または AI に質問",
+    "resultsLabel": "検索結果",
+    "intent": {
+      "askAi": "AI に質問",
+      "execute": "{title} を実行",
+      "open": "{title} を開く",
+      "web": "ウェブを検索",
+      "enter": "Enter キーを押して{action}",
+      "updating": "結果を更新中…",
+      "selectionRemoved": "この結果は利用できなくなりました。別の結果を選択してください。"
+    },
+    "inlineAi": {
+      "followUp": "続けて質問…",
+      "followUpLabel": "追加の質問",
+      "stop": "生成を停止",
+      "send": "質問を送信",
+      "retry": "再試行",
+      "expand": "会話全体を開く",
+      "unavailable": "AI は利用できません。設定でプロバイダーを構成してください。",
+      "openSettings": "AI 設定を開く",
+      "started": "回答を生成しています。",
+      "completed": "回答が完了しました。",
+      "cancelled": "回答をキャンセルしました。",
+      "failed": "回答を完了できませんでした。"
+    },
+    "quickLinkPrompt": {
+      "title": "クイックリンクの引数を入力",
+      "submit": "リンクを開く"
+    },
     "searchPlaceholder": "アプリ、コマンドを検索、または AI に質問...",
     "browserSearch": {
       "openUrl": "{url} を開く",
@@ -859,6 +888,7 @@
       "showMore": "もっと見る"
     },
     "status": {
+      "fileSearchFailed": "ファイル検索は利用できません。ほかの結果は引き続き利用できます。",
       "discoveringApps": "アプリを検出中...",
       "noMatchingResults": "一致する結果がありません",
       "results": "{count} 件の結果"
@@ -939,6 +969,14 @@
       "results": "結果"
     },
     "calculator": {
+      "kinds": {
+        "math": "数学",
+        "unit": "単位",
+        "currency": "通貨",
+        "crypto": "暗号資産",
+        "time": "時刻",
+        "date": "日付"
+      },
       "pressEnterToCopy": "Enter でコピー",
       "clickToCopy": "クリックしてコピー",
       "copy": "コピー"

@@ -22,7 +22,6 @@ import {
 
 interface ExtensionPreferenceSetupViewProps {
   setup: ExtensionPreferenceSetup;
-  alwaysMountedRunners: React.ReactNode;
   onBack: () => void;
   onLaunchExtension: (bundle: ExtensionBundle) => void;
   onLaunchMenuBar: (bundle: ExtensionBundle, action: 'toggle') => void;
@@ -31,7 +30,6 @@ interface ExtensionPreferenceSetupViewProps {
 
 export default function ExtensionPreferenceSetupView({
   setup,
-  alwaysMountedRunners,
   onBack,
   onLaunchExtension,
   onLaunchMenuBar,
@@ -89,8 +87,6 @@ export default function ExtensionPreferenceSetupView({
   }, [hasBlockingMissing, handleContinue, onBack]);
 
   return (
-    <>
-      {alwaysMountedRunners}
       <div className="w-full h-full">
         <div className="glass-effect sc-command-setup-shell overflow-hidden h-full flex flex-col">
           <div className="flex h-[56px] items-center gap-2 px-4 border-b border-[var(--ui-divider)]">
@@ -286,6 +282,5 @@ export default function ExtensionPreferenceSetupView({
           </div>
         </div>
       </div>
-    </>
   );
 }

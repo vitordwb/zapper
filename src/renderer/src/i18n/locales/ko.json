@@ -129,7 +129,7 @@
       },
       "visualStyle": {
         "title": "비주얼 스타일",
-        "description": "기본 디자인을 사용하거나 macOS Tahoe에서 영감을 받은 스타일을 활성화하세요.",
+        "description": "보조 보기의 스타일을 선택하세요. 검색과 인라인 AI에는 시스템에서 영감을 받은 디자인이 적용됩니다.",
         "default": "기본",
         "glassy": "글래시"
       },
@@ -141,7 +141,7 @@
       },
       "background": {
         "title": "런처 배경 이미지",
-        "description": "런처 뒤에 부드럽게 흐릿하고 불투명도가 낮은 이미지를 표시하여 전체 배경화면이 아닌 힌트처럼 읽혀지게 합니다.",
+        "description": "지원되는 보조 보기의 배경을 사용자화하세요. 검색과 인라인 AI는 깔끔한 시스템 기반 화면을 유지합니다.",
         "empty": "선택한 이미지가 없습니다. 런처는 현재 배경을 계속 사용합니다.",
         "choose": "이미지 선택",
         "change": "이미지 변경",
@@ -150,7 +150,7 @@
         "summary": "흐림 {blur}% · 불투명도 {opacity}%",
         "blur": "흐림",
         "opacity": "불투명",
-        "useEverywhere": "확장 및 핵심 실행기 보기에서도 이 이미지를 사용하십시오."
+        "useEverywhere": "지원되는 보조 보기에서 사용"
       },
       "updates": {
         "title": "앱 업데이트",
@@ -811,6 +811,35 @@
     }
   },
   "launcher": {
+    "searchLabel": "앱, 명령, 파일을 검색하거나 AI에 질문하기",
+    "resultsLabel": "검색 결과",
+    "intent": {
+      "askAi": "AI에 질문",
+      "execute": "{title} 실행",
+      "open": "{title} 열기",
+      "web": "웹 검색",
+      "enter": "{action}: Enter 누르기",
+      "updating": "결과 업데이트 중…",
+      "selectionRemoved": "이 결과는 더 이상 사용할 수 없습니다. 다른 결과를 선택하세요."
+    },
+    "inlineAi": {
+      "followUp": "추가 질문하기…",
+      "followUpLabel": "추가 질문",
+      "stop": "생성 중지",
+      "send": "질문 보내기",
+      "retry": "다시 시도",
+      "expand": "전체 대화 열기",
+      "unavailable": "AI를 사용할 수 없습니다. 설정에서 제공업체를 구성하세요.",
+      "openSettings": "AI 설정 열기",
+      "started": "답변 생성 중.",
+      "completed": "답변이 완료되었습니다.",
+      "cancelled": "답변이 취소되었습니다.",
+      "failed": "답변을 완료하지 못했습니다."
+    },
+    "quickLinkPrompt": {
+      "title": "빠른 링크 인수 입력",
+      "submit": "링크 열기"
+    },
     "searchPlaceholder": "앱, 명령을 검색하거나 AI에게 물어보세요...",
     "browserSearch": {
       "openUrl": "{url} 열기",
@@ -859,6 +888,7 @@
       "showMore": "더 보기"
     },
     "status": {
+      "fileSearchFailed": "파일 검색을 사용할 수 없습니다. 다른 결과는 계속 사용할 수 있습니다.",
       "discoveringApps": "앱 검색 중...",
       "noMatchingResults": "일치하는 결과가 없습니다",
       "results": "{count} 결과"
@@ -939,6 +969,14 @@
       "results": "결과"
     },
     "calculator": {
+      "kinds": {
+        "math": "수학",
+        "unit": "단위",
+        "currency": "통화",
+        "crypto": "암호화폐",
+        "time": "시간",
+        "date": "날짜"
+      },
       "pressEnterToCopy": "복사하려면 Enter를 누르세요.",
       "clickToCopy": "복사하려면 클릭하세요.",
       "copy": "복사"

@@ -30,7 +30,7 @@ export type UseLauncherWindowShownHandlerOptions = {
 
   expandLauncherForDirectLaunch: () => void;
   requestPendingInlineArgumentFocus: () => void;
-  exitAiMode: () => void;
+  exitAiMode: (options?: { restoreFocus?: boolean }) => void;
   resetCursorPromptState: () => void;
 
   fetchCommands: (options?: { showLoading?: boolean }) => void | Promise<void>;
@@ -373,7 +373,6 @@ export function useLauncherWindowShownHandler(
       // Snippets, File Search, etc.) is open, keep it alive - don't reset.
       if (hasPersistableViewRef.current && !shouldResetOverlays) {
         setIsCompactCollapsed(false);
-        void window.electron.resizeLauncherWindow(true);
         return;
       }
       const pendingQuery = pendingWindowShownQueryRef.current;
@@ -387,11 +386,11 @@ export function useLauncherWindowShownHandler(
       // command with missing args), expand out of compact so results are
       // immediately visible.
       if (pendingQuery) {
-        exitAiMode();
+        exitAiMode({ restoreFocus: false });
         expandLauncherForDirectLaunch();
       } else {
         setIsCompactCollapsed(true);
-        exitAiMode();
+        exitAiMode({ restoreFocus: false });
       }
       // Focus synchronously before any IO - a keystroke arriving back-to-back
       // with the show event must land on a focused input.
@@ -408,7 +407,7 @@ export function useLauncherWindowShownHandler(
           fetchCommands({ showLoading: false });
         }
         loadLauncherPreferences();
-        window.electron.aiIsAvailable().then(setAiAvailable);
+        void window.electron.aiIsAvailable().then(setAiAvailable).catch(() => setAiAvailable(false));
       };
       if (typeof window.requestIdleCallback === 'function') {
         window.requestIdleCallback(runDeferred, { timeout: 200 });

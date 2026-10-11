@@ -129,7 +129,7 @@
       },
       "visualStyle": {
         "title": "Visual Style",
-        "description": "Use Default look or enable a glassy macOS Tahoe-inspired style.",
+        "description": "Choisissez le style des vues secondaires. La recherche et l’IA intégrée utilisent un design inspiré du système.",
         "default": "Default",
         "glassy": "Glassy"
       },
@@ -141,7 +141,7 @@
       },
       "background": {
         "title": "Launcher Background Image",
-        "description": "Show a softly blurred, low-opacity image behind the launcher so it reads like a hint, not a full wallpaper.",
+        "description": "Personnalisez les arrière-plans des vues secondaires compatibles. La recherche et l’IA intégrée conservent une surface épurée inspirée du système.",
         "empty": "No image selected. The launcher will keep using its current background.",
         "choose": "Choose Image",
         "change": "Change Image",
@@ -150,7 +150,7 @@
         "summary": "Blur {blur}% · Opacity {opacity}%",
         "blur": "Blur",
         "opacity": "Opacity",
-        "useEverywhere": "Use this image in extension and core launcher views too"
+        "useEverywhere": "Utiliser dans les vues secondaires compatibles"
       },
       "updates": {
         "title": "App Updates",
@@ -811,6 +811,35 @@
     }
   },
   "launcher": {
+    "searchLabel": "Rechercher des apps, commandes, fichiers ou interroger l’IA",
+    "resultsLabel": "Résultats de recherche",
+    "intent": {
+      "askAi": "Interroger l’IA",
+      "execute": "Exécuter {title}",
+      "open": "Ouvrir {title}",
+      "web": "Rechercher sur le Web",
+      "enter": "Appuyez sur Entrée pour {action}",
+      "updating": "Actualisation des résultats…",
+      "selectionRemoved": "Ce résultat n’est plus disponible. Sélectionnez-en un autre."
+    },
+    "inlineAi": {
+      "followUp": "Poser une autre question…",
+      "followUpLabel": "Question complémentaire",
+      "stop": "Arrêter la génération",
+      "send": "Envoyer la question",
+      "retry": "Réessayer",
+      "expand": "Ouvrir la conversation complète",
+      "unavailable": "L’IA est indisponible. Configurez un fournisseur dans les réglages.",
+      "openSettings": "Ouvrir les réglages de l’IA",
+      "started": "Génération de la réponse.",
+      "completed": "Réponse terminée.",
+      "cancelled": "Réponse annulée.",
+      "failed": "Impossible de terminer la réponse."
+    },
+    "quickLinkPrompt": {
+      "title": "Renseigner les arguments du lien rapide",
+      "submit": "Ouvrir le lien"
+    },
     "searchPlaceholder": "Rechercher des commandes...",
     "browserSearch": {
       "openUrl": "Ouvrir {url}",
@@ -859,6 +888,7 @@
       "showMore": "Show More"
     },
     "status": {
+      "fileSearchFailed": "La recherche de fichiers est indisponible. Les autres résultats restent accessibles.",
       "discoveringApps": "Discovering apps...",
       "noMatchingResults": "No matching results",
       "results": "{count} results"
@@ -939,6 +969,14 @@
       "results": "Results"
     },
     "calculator": {
+      "kinds": {
+        "math": "Mathématiques",
+        "unit": "Unité",
+        "currency": "Devise",
+        "crypto": "Cryptomonnaie",
+        "time": "Heure",
+        "date": "Date"
+      },
       "pressEnterToCopy": "Press Enter to copy",
       "clickToCopy": "Click to copy",
       "copy": "Copy"

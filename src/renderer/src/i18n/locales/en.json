@@ -129,7 +129,7 @@
       },
       "visualStyle": {
         "title": "Visual Style",
-        "description": "Use Default look or enable a glassy macOS Tahoe-inspired style.",
+        "description": "Choose the style for secondary views. Search and inline AI use the system-inspired design.",
         "default": "Default",
         "glassy": "Glassy"
       },
@@ -141,7 +141,7 @@
       },
       "background": {
         "title": "Launcher Background Image",
-        "description": "Show a softly blurred, low-opacity image behind the launcher so it reads like a hint, not a full wallpaper.",
+        "description": "Customize backgrounds in supported secondary views. Search and inline AI keep a clear system-inspired surface.",
         "empty": "No image selected. The launcher will keep using its current background.",
         "choose": "Choose Image",
         "change": "Change Image",
@@ -150,7 +150,7 @@
         "summary": "Blur {blur}% · Opacity {opacity}%",
         "blur": "Blur",
         "opacity": "Opacity",
-        "useEverywhere": "Use this image in extension and core launcher views too"
+        "useEverywhere": "Use in supported secondary views"
       },
       "updates": {
         "title": "App Updates",
@@ -811,6 +811,35 @@
     }
   },
   "launcher": {
+    "searchLabel": "Search apps, commands, files, or ask AI",
+    "resultsLabel": "Search results",
+    "intent": {
+      "askAi": "Ask AI",
+      "execute": "Run {title}",
+      "open": "Open {title}",
+      "web": "Search the web",
+      "enter": "Press Enter to {action}",
+      "updating": "Updating results…",
+      "selectionRemoved": "This result is no longer available. Select another result."
+    },
+    "inlineAi": {
+      "followUp": "Ask a follow-up…",
+      "followUpLabel": "Follow-up question",
+      "stop": "Stop generating",
+      "send": "Send question",
+      "retry": "Try again",
+      "expand": "Open full conversation",
+      "unavailable": "AI is unavailable. Configure a provider in Settings.",
+      "openSettings": "Open AI settings",
+      "started": "Generating an answer.",
+      "completed": "Answer complete.",
+      "cancelled": "Response cancelled.",
+      "failed": "Could not complete the answer."
+    },
+    "quickLinkPrompt": {
+      "title": "Fill Quick Link Arguments",
+      "submit": "Open Link"
+    },
     "searchPlaceholder": "Search for apps, commands, or ask AI...",
     "browserSearch": {
       "openUrl": "Open {url}",
@@ -859,6 +888,7 @@
       "showMore": "Show More"
     },
     "status": {
+      "fileSearchFailed": "File search is unavailable. Other results are still available.",
       "discoveringApps": "Discovering apps...",
       "noMatchingResults": "No matching results",
       "results": "{count} results"
@@ -939,6 +969,14 @@
       "results": "Results"
     },
     "calculator": {
+      "kinds": {
+        "math": "Math",
+        "unit": "Unit",
+        "currency": "Currency",
+        "crypto": "Crypto",
+        "time": "Time",
+        "date": "Date"
+      },
       "pressEnterToCopy": "Press Enter to copy",
       "clickToCopy": "Click to copy",
       "copy": "Copy"

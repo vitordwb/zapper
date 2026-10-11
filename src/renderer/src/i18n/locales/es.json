@@ -129,7 +129,7 @@
       },
       "visualStyle": {
         "title": "Visual Style",
-        "description": "Use Default look or enable a glassy macOS Tahoe-inspired style.",
+        "description": "Elige el estilo de las vistas secundarias. La búsqueda y la IA integrada usan un diseño inspirado en el sistema.",
         "default": "Default",
         "glassy": "Glassy"
       },
@@ -141,7 +141,7 @@
       },
       "background": {
         "title": "Launcher Background Image",
-        "description": "Show a softly blurred, low-opacity image behind the launcher so it reads like a hint, not a full wallpaper.",
+        "description": "Personaliza los fondos de las vistas secundarias compatibles. La búsqueda y la IA integrada mantienen una superficie despejada inspirada en el sistema.",
         "empty": "No image selected. The launcher will keep using its current background.",
         "choose": "Choose Image",
         "change": "Change Image",
@@ -150,7 +150,7 @@
         "summary": "Blur {blur}% · Opacity {opacity}%",
         "blur": "Blur",
         "opacity": "Opacity",
-        "useEverywhere": "Use this image in extension and core launcher views too"
+        "useEverywhere": "Usar en vistas secundarias compatibles"
       },
       "updates": {
         "title": "App Updates",
@@ -811,6 +811,35 @@
     }
   },
   "launcher": {
+    "searchLabel": "Buscar aplicaciones, comandos o archivos, o preguntar a la IA",
+    "resultsLabel": "Resultados de búsqueda",
+    "intent": {
+      "askAi": "Preguntar a la IA",
+      "execute": "Ejecutar {title}",
+      "open": "Abrir {title}",
+      "web": "Buscar en la web",
+      "enter": "Pulsa Intro para {action}",
+      "updating": "Actualizando resultados…",
+      "selectionRemoved": "Este resultado ya no está disponible. Selecciona otro."
+    },
+    "inlineAi": {
+      "followUp": "Haz otra pregunta…",
+      "followUpLabel": "Pregunta de seguimiento",
+      "stop": "Detener generación",
+      "send": "Enviar pregunta",
+      "retry": "Volver a intentar",
+      "expand": "Abrir conversación completa",
+      "unavailable": "La IA no está disponible. Configura un proveedor en Ajustes.",
+      "openSettings": "Abrir ajustes de IA",
+      "started": "Generando una respuesta.",
+      "completed": "Respuesta completada.",
+      "cancelled": "Respuesta cancelada.",
+      "failed": "No se pudo completar la respuesta."
+    },
+    "quickLinkPrompt": {
+      "title": "Rellenar argumentos del enlace rápido",
+      "submit": "Abrir enlace"
+    },
     "searchPlaceholder": "Buscar comandos...",
     "browserSearch": {
       "openUrl": "Abrir {url}",
@@ -859,6 +888,7 @@
       "showMore": "Show More"
     },
     "status": {
+      "fileSearchFailed": "La búsqueda de archivos no está disponible. Los demás resultados siguen disponibles.",
       "discoveringApps": "Discovering apps...",
       "noMatchingResults": "No matching results",
       "results": "{count} results"
@@ -939,6 +969,14 @@
       "results": "Results"
     },
     "calculator": {
+      "kinds": {
+        "math": "Matemáticas",
+        "unit": "Unidad",
+        "currency": "Moneda",
+        "crypto": "Criptomonedas",
+        "time": "Hora",
+        "date": "Fecha"
+      },
       "pressEnterToCopy": "Press Enter to copy",
       "clickToCopy": "Click to copy",
       "copy": "Copy"

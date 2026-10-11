@@ -92,6 +92,13 @@ export type UseLauncherActionModelOptions = {
   t: (key: string, params?: Record<string, string | number>) => string;
 };
 
+function nextEnabledAction(actions: LauncherAction[], current: number, direction: -1 | 1): number {
+  for (let index = current + direction; index >= 0 && index < actions.length; index += direction) {
+    if (actions[index].enabled !== false) return index;
+  }
+  return current;
+}
+
 export function useLauncherActionModel(options: UseLauncherActionModelOptions): {
   selectedActions: LauncherAction[];
   actionsOverlayActions: LauncherAction[];
@@ -524,7 +531,7 @@ export function useLauncherActionModel(options: UseLauncherActionModelOptions): 
       // Match modifier shortcuts (Cmd+N, Ctrl+X, etc.) to actions
       if (!e.repeat && (e.metaKey || e.ctrlKey || e.altKey)) {
         for (const action of actionsOverlayActions) {
-          if (!action.shortcut || action.shortcut === 'Enter') continue;
+          if (action.enabled === false || !action.shortcut || action.shortcut === 'Enter') continue;
           if (matchesLauncherShortcut(e, action.shortcut)) {
             e.preventDefault();
             await Promise.resolve(action.execute());
@@ -538,17 +545,18 @@ export function useLauncherActionModel(options: UseLauncherActionModelOptions): 
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          setSelectedActionIndex((prev) =>
-            Math.min(prev + 1, actionsOverlayActions.length - 1)
-          );
+          setSelectedActionIndex((prev) => nextEnabledAction(actionsOverlayActions, prev, 1));
           break;
         case 'ArrowUp':
           e.preventDefault();
-          setSelectedActionIndex((prev) => Math.max(prev - 1, 0));
+          setSelectedActionIndex((prev) => nextEnabledAction(actionsOverlayActions, prev, -1));
           break;
         case 'Enter':
           e.preventDefault();
-          await Promise.resolve(actionsOverlayActions[selectedActionIndex]?.execute());
+          if (e.repeat || e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) break;
+          if (actionsOverlayActions[selectedActionIndex]?.enabled === false) break;
+          if (!actionsOverlayActions[selectedActionIndex]) break;
+          await Promise.resolve(actionsOverlayActions[selectedActionIndex].execute());
           setShowActions(false);
           restoreLauncherFocus();
           break;
@@ -569,7 +577,7 @@ export function useLauncherActionModel(options: UseLauncherActionModelOptions): 
       // Match modifier shortcuts to actions
       if (!e.repeat && (e.metaKey || e.ctrlKey || e.altKey)) {
         for (const action of contextActions) {
-          if (!action.shortcut || action.shortcut === 'Enter') continue;
+          if (action.enabled === false || !action.shortcut || action.shortcut === 'Enter') continue;
           if (matchesLauncherShortcut(e, action.shortcut)) {
             e.preventDefault();
             await Promise.resolve(action.execute());
@@ -583,17 +591,18 @@ export function useLauncherActionModel(options: UseLauncherActionModelOptions): 
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          setSelectedContextActionIndex((prev) =>
-            Math.min(prev + 1, contextActions.length - 1)
-          );
+          setSelectedContextActionIndex((prev) => nextEnabledAction(contextActions, prev, 1));
           break;
         case 'ArrowUp':
           e.preventDefault();
-          setSelectedContextActionIndex((prev) => Math.max(prev - 1, 0));
+          setSelectedContextActionIndex((prev) => nextEnabledAction(contextActions, prev, -1));
           break;
         case 'Enter':
           e.preventDefault();
-          await Promise.resolve(contextActions[selectedContextActionIndex]?.execute());
+          if (e.repeat || e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) break;
+          if (contextActions[selectedContextActionIndex]?.enabled === false) break;
+          if (!contextActions[selectedContextActionIndex]) break;
+          await Promise.resolve(contextActions[selectedContextActionIndex].execute());
           setContextMenu(null);
           restoreLauncherFocus();
           break;
